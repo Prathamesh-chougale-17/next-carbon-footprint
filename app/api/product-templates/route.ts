@@ -53,8 +53,7 @@ export async function POST(request: NextRequest) {
       category,
       specifications,
       manufacturerAddress,
-      isRawMaterial = false,
-      isActive = true
+      isRawMaterial = false
     } = body;
 
     // Validate required fields
@@ -78,8 +77,10 @@ export async function POST(request: NextRequest) {
     const templatesCollection = db.collection<ProductTemplate>('productTemplates');
     const companiesCollection = db.collection<Company>('companies');
 
-    // Check if company exists
-    const company = await companiesCollection.findOne({ walletAddress: manufacturerAddress });
+    // Check if company exists (case-insensitive)
+    const company = await companiesCollection.findOne({ 
+      walletAddress: manufacturerAddress.toLowerCase() 
+    });
     if (!company) {
       return NextResponse.json(
         { error: 'Company not found' },
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     // Check for duplicate template name for this manufacturer
     const existingTemplate = await templatesCollection.findOne({
       templateName,
-      manufacturerAddress
+      manufacturerAddress: manufacturerAddress.toLowerCase()
     });
 
     if (existingTemplate) {
@@ -112,9 +113,8 @@ export async function POST(request: NextRequest) {
           : specifications.materials.split(',').map((m: string) => m.trim()).filter((m: string) => m),
         carbonFootprintPerUnit: specifications.carbonFootprintPerUnit
       },
-      manufacturerAddress,
+      manufacturerAddress: manufacturerAddress.toLowerCase(),
       isRawMaterial,
-      isActive,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
     if (result.insertedId) {
       // Update company's productTemplates array
       await companiesCollection.updateOne(
-        { walletAddress: manufacturerAddress },
+        { walletAddress: manufacturerAddress.toLowerCase() },
         {
           $addToSet: { productTemplates: result.insertedId.toString() },
           $set: { updatedAt: new Date() }

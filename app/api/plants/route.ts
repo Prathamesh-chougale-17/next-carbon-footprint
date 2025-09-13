@@ -76,8 +76,10 @@ export async function POST(request: NextRequest) {
     const plantsCollection = db.collection<Plant>('plants');
     const companiesCollection = db.collection<Company>('companies');
 
-    // Check if company exists
-    const company = await companiesCollection.findOne({ walletAddress: companyAddress });
+    // Check if company exists (case-insensitive)
+    const company = await companiesCollection.findOne({ 
+      walletAddress: companyAddress.toLowerCase() 
+    });
     if (!company) {
       return NextResponse.json(
         { error: 'Company not found' },
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest) {
     // Check for duplicate plant code
     const existingPlant = await plantsCollection.findOne({
       plantCode,
-      companyAddress
+      companyAddress: companyAddress.toLowerCase()
     });
 
     if (existingPlant) {
@@ -102,7 +104,7 @@ export async function POST(request: NextRequest) {
       plantName,
       plantCode,
       description,
-      companyAddress,
+      companyAddress: companyAddress.toLowerCase(),
       location: {
         address: location.address,
         city: location.city,
@@ -114,7 +116,6 @@ export async function POST(request: NextRequest) {
           longitude: parseFloat(location.coordinates.longitude)
         }
       },
-      isActive: true,
       createdAt: new Date(),
       updatedAt: new Date()
     };

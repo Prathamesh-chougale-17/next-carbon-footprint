@@ -6,10 +6,10 @@ import { ObjectId } from 'mongodb';
 // GET /api/product-templates/[id] - Get specific product template
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json(
@@ -44,10 +44,10 @@ export async function GET(
 // PUT /api/product-templates/[id] - Update product template
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     if (!ObjectId.isValid(id)) {
@@ -70,11 +70,32 @@ export async function PUT(
       );
     }
 
+    // Check for duplicate template name if templateName is being changed
+    if (body.templateName && body.templateName !== existingTemplate.templateName) {
+      const duplicateTemplate = await collection.findOne({
+        templateName: body.templateName,
+        manufacturerAddress: (body.manufacturerAddress || existingTemplate.manufacturerAddress).toLowerCase(),
+        _id: { $ne: new ObjectId(id) }
+      });
+
+      if (duplicateTemplate) {
+        return NextResponse.json(
+          { error: 'Template with this name already exists for this manufacturer' },
+          { status: 409 }
+        );
+      }
+    }
+
     // Prepare update data
     const updateData: Partial<ProductTemplate> = {
       ...body,
       updatedAt: new Date()
     };
+
+    // Normalize manufacturerAddress to lowercase if provided
+    if (body.manufacturerAddress) {
+      updateData.manufacturerAddress = body.manufacturerAddress.toLowerCase();
+    }
 
     // If specifications are being updated, ensure proper structure
     if (body.specifications) {
@@ -113,10 +134,10 @@ export async function PUT(
 // DELETE /api/product-templates/[id] - Delete product template
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json(
@@ -151,7 +172,7 @@ export async function DELETE(
 
     // Remove template ID from company's productTemplates array
     await companiesCollection.updateOne(
-      { walletAddress: template.manufacturerAddress },
+      { walletAddress: template.manufacturerAddress.toLowerCase() },
       {
         $pull: { productTemplates: id as any },
         $set: { updatedAt: new Date() }

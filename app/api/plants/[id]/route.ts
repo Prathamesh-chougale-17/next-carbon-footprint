@@ -6,10 +6,10 @@ import { ObjectId } from 'mongodb';
 // GET /api/plants/[id] - Get specific plant
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string } >}
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json(
@@ -44,10 +44,10 @@ export async function GET(
 // PUT /api/plants/[id] - Update plant
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     if (!ObjectId.isValid(id)) {
@@ -77,7 +77,7 @@ export async function PUT(
     };
 
     // Handle location coordinates if provided
-    if (body.location && body.location.coordinates) {
+    if (body.location) {
       updateData.location = {
         ...body.location,
         coordinates: {
@@ -113,10 +113,10 @@ export async function PUT(
 // DELETE /api/plants/[id] - Delete plant
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } =await params;
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json(
@@ -137,19 +137,11 @@ export async function DELETE(
         { status: 404 }
       );
     }
+    
+    // Permanently delete the plant from database
+    const result = await collection.deleteOne({ _id: new ObjectId(id) });
 
-    // Soft delete by setting isActive to false
-    const result = await collection.updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: {
-          isActive: false,
-          updatedAt: new Date()
-        }
-      }
-    );
-
-    if (result.matchedCount === 0) {
+    if (result.deletedCount === 0) {
       return NextResponse.json(
         { error: 'Failed to delete plant' },
         { status: 500 }

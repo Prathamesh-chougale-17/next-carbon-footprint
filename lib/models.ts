@@ -35,7 +35,7 @@ export interface ProductTemplate {
   };
   manufacturerAddress: string;
   isRawMaterial: boolean;
-  isActive: boolean;
+  isActive?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
