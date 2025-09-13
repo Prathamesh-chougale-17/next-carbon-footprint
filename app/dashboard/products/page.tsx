@@ -62,6 +62,7 @@ export default function ProductTemplatesPage() {
     height: "",
     materials: "",
     carbonFootprintPerUnit: "",
+    isRawMaterial: false,
     manufacturerAddress: ""
   });
 
@@ -112,6 +113,7 @@ export default function ProductTemplatesPage() {
           carbonFootprintPerUnit: parseFloat(formData.carbonFootprintPerUnit)
         },
         manufacturerAddress: address,
+        isRawMaterial: formData.isRawMaterial,
         isActive: true
       };
 
@@ -138,6 +140,7 @@ export default function ProductTemplatesPage() {
           height: "",
           materials: "",
           carbonFootprintPerUnit: "",
+          isRawMaterial: false,
           manufacturerAddress: ""
         });
         fetchTemplates();
@@ -327,7 +330,7 @@ export default function ProductTemplatesPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="carbonFootprintPerUnit">Carbon Footprint (kg CO₂/unit) *</Label>
+                  <Label htmlFor="carbonFootprintPerUnit">Carbon Footprint per Unit (kg CO₂/unit) *</Label>
                   <Input
                     id="carbonFootprintPerUnit"
                     type="number"
@@ -353,6 +356,17 @@ export default function ProductTemplatesPage() {
                   placeholder="Steel, Zinc, Plastic"
                   required
                 />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isRawMaterial"
+                  checked={formData.isRawMaterial}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("isRawMaterial", checked as boolean)
+                  }
+                />
+                <Label htmlFor="isRawMaterial">Is Raw Material</Label>
               </div>
 
               <div className="flex items-center justify-between pt-4">
@@ -403,6 +417,12 @@ export default function ProductTemplatesPage() {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Category:</span>
                   <span className="capitalize">{template.category}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Type:</span>
+                  <Badge variant={template.isRawMaterial ? "default" : "secondary"} className="text-xs">
+                    {template.isRawMaterial ? "Raw Material" : "Product"}
+                  </Badge>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Weight:</span>

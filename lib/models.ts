@@ -34,6 +34,7 @@ export interface ProductTemplate {
     carbonFootprintPerUnit: number;
   };
   manufacturerAddress: string;
+  isRawMaterial: boolean;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

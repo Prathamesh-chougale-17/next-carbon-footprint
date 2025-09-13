@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
       category,
       specifications,
       manufacturerAddress,
+      isRawMaterial = false,
       isActive = true
     } = body;
 
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
         carbonFootprintPerUnit: specifications.carbonFootprintPerUnit
       },
       manufacturerAddress,
+      isRawMaterial,
       isActive,
       createdAt: new Date(),
       updatedAt: new Date()
