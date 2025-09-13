@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -32,6 +31,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Package,
   Plus,
   Search,
@@ -41,6 +50,7 @@ import {
   Edit,
   Trash2,
   Settings,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ProductTemplate, Plant } from "@/lib/models";
@@ -63,7 +73,11 @@ export default function ProductTemplatesPage() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showBatchModal, setShowBatchModal] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ProductTemplate | null>(null);
+  const [isEditLoading, setIsEditLoading] = useState(false);
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [batchData, setBatchData] = useState({
     batchNumber: "",
     quantity: "",
@@ -83,12 +97,7 @@ export default function ProductTemplatesPage() {
     manufacturerAddress: ""
   });
 
-  useEffect(() => {
-    fetchTemplates();
-    fetchPlants();
-  }, [address]);
-
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     if (!address) return;
 
     try {
@@ -102,9 +111,9 @@ export default function ProductTemplatesPage() {
     } finally {
       setIsInitialLoading(false);
     }
-  };
+  }, [address]);
 
-  const fetchPlants = async () => {
+  const fetchPlants = useCallback(async () => {
     if (!address) return;
 
     setIsLoadingPlants(true);
@@ -127,7 +136,12 @@ export default function ProductTemplatesPage() {
     } finally {
       setIsLoadingPlants(false);
     }
-  };
+  }, [address]);
+
+  useEffect(() => {
+    fetchTemplates();
+    fetchPlants();
+  }, [fetchTemplates, fetchPlants]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({
@@ -167,6 +181,127 @@ export default function ProductTemplatesPage() {
       quantity: "",
       plantId: ""
     });
+  };
+
+  const openEditDialog = (template: ProductTemplate) => {
+    setSelectedTemplate(template);
+    setFormData({
+      templateName: template.templateName,
+      description: template.description,
+      category: template.category,
+      weight: template.specifications.weight.toString(),
+      length: template.specifications.dimensions?.length?.toString() || "",
+      width: template.specifications.dimensions?.width?.toString() || "",
+      height: template.specifications.dimensions?.height?.toString() || "",
+      materials: template.specifications.materials.join(', '),
+      carbonFootprintPerUnit: template.specifications.carbonFootprintPerUnit.toString(),
+      isRawMaterial: template.isRawMaterial,
+      manufacturerAddress: template.manufacturerAddress
+    });
+    setShowEditDialog(true);
+  };
+
+  const closeEditDialog = () => {
+    setShowEditDialog(false);
+    setSelectedTemplate(null);
+    setFormData({
+      templateName: "",
+      description: "",
+      category: "",
+      weight: "",
+      length: "",
+      width: "",
+      height: "",
+      materials: "",
+      carbonFootprintPerUnit: "",
+      isRawMaterial: false,
+      manufacturerAddress: ""
+    });
+  };
+
+  const openDeleteDialog = (template: ProductTemplate) => {
+    setSelectedTemplate(template);
+    setShowDeleteDialog(true);
+  };
+
+  const closeDeleteDialog = () => {
+    setShowDeleteDialog(false);
+    setSelectedTemplate(null);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTemplate) return;
+
+    setIsEditLoading(true);
+    try {
+      const templateData = {
+        templateName: formData.templateName,
+        description: formData.description,
+        category: formData.category,
+        specifications: {
+          weight: parseFloat(formData.weight),
+          dimensions: formData.length && formData.width && formData.height ? {
+            length: parseFloat(formData.length),
+            width: parseFloat(formData.width),
+            height: parseFloat(formData.height)
+          } : undefined,
+          materials: formData.materials.split(',').map(m => m.trim()).filter(m => m),
+          carbonFootprintPerUnit: parseFloat(formData.carbonFootprintPerUnit)
+        },
+        isRawMaterial: formData.isRawMaterial,
+        isActive: true
+      };
+
+      const response = await fetch(`/api/product-templates/${selectedTemplate._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(templateData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success("Product template updated successfully!");
+        closeEditDialog();
+        fetchTemplates();
+      } else {
+        toast.error(result.error || "Failed to update template");
+      }
+    } catch (error) {
+      console.error("Error updating template:", error);
+      toast.error("An error occurred while updating the template");
+    } finally {
+      setIsEditLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedTemplate) return;
+
+    setIsDeleteLoading(true);
+    try {
+      const response = await fetch(`/api/product-templates/${selectedTemplate._id}`, {
+        method: "DELETE",
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success("Product template deleted successfully!");
+        closeDeleteDialog();
+        fetchTemplates();
+      } else {
+        toast.error(result.error || "Failed to delete template");
+      }
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      toast.error("An error occurred while deleting the template");
+    } finally {
+      setIsDeleteLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -577,7 +712,11 @@ export default function ProductTemplatesPage() {
                     <Factory className="h-3 w-3 mr-1" />
                     Create Batch
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => openEditDialog(template)}
+                  >
                     <Edit className="h-3 w-3 mr-1" />
                     Edit
                   </Button>
@@ -585,6 +724,7 @@ export default function ProductTemplatesPage() {
                     variant="outline"
                     size="sm"
                     className="text-red-600 hover:text-red-700"
+                    onClick={() => openDeleteDialog(template)}
                   >
                     <Trash2 className="h-3 w-3 mr-1" />
                     Delete
@@ -757,6 +897,229 @@ export default function ProductTemplatesPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Template Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Edit Product Template
+            </DialogTitle>
+            <DialogDescription>
+              Update the product template specifications and carbon footprint data.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-templateName">Template Name *</Label>
+                <Input
+                  id="edit-templateName"
+                  value={formData.templateName}
+                  onChange={(e) =>
+                    handleInputChange("templateName", e.target.value)
+                  }
+                  placeholder="e.g., Steel Bolt M8"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-category">Category *</Label>
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => handleInputChange("category", value)}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Fasteners">Fasteners</SelectItem>
+                    <SelectItem value="Textiles">Textiles</SelectItem>
+                    <SelectItem value="Electronics">Electronics</SelectItem>
+                    <SelectItem value="Packaging">Packaging</SelectItem>
+                    <SelectItem value="Automotive">Automotive</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description *</Label>
+              <Textarea
+                id="edit-description"
+                value={formData.description}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
+                placeholder="Describe the product template"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-weight">Weight (kg) *</Label>
+                <Input
+                  id="edit-weight"
+                  type="number"
+                  step="0.01"
+                  value={formData.weight}
+                  onChange={(e) =>
+                    handleInputChange("weight", e.target.value)
+                  }
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-length">Length (cm)</Label>
+                <Input
+                  id="edit-length"
+                  type="number"
+                  step="0.1"
+                  value={formData.length}
+                  onChange={(e) =>
+                    handleInputChange("length", e.target.value)
+                  }
+                  placeholder="0.0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-width">Width (cm)</Label>
+                <Input
+                  id="edit-width"
+                  type="number"
+                  step="0.1"
+                  value={formData.width}
+                  onChange={(e) =>
+                    handleInputChange("width", e.target.value)
+                  }
+                  placeholder="0.0"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-height">Height (cm)</Label>
+                <Input
+                  id="edit-height"
+                  type="number"
+                  step="0.1"
+                  value={formData.height}
+                  onChange={(e) =>
+                    handleInputChange("height", e.target.value)
+                  }
+                  placeholder="0.0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-carbonFootprintPerUnit">Carbon Footprint per Unit (kg CO₂/unit) *</Label>
+                <Input
+                  id="edit-carbonFootprintPerUnit"
+                  type="number"
+                  step="0.01"
+                  value={formData.carbonFootprintPerUnit}
+                  onChange={(e) =>
+                    handleInputChange("carbonFootprintPerUnit", e.target.value)
+                  }
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-materials">Materials (comma-separated) *</Label>
+              <Input
+                id="edit-materials"
+                value={formData.materials}
+                onChange={(e) =>
+                  handleInputChange("materials", e.target.value)
+                }
+                placeholder="Steel, Zinc, Plastic"
+                required
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit-isRawMaterial"
+                checked={formData.isRawMaterial}
+                onCheckedChange={(checked) =>
+                  handleInputChange("isRawMaterial", checked as boolean)
+                }
+              />
+              <Label htmlFor="edit-isRawMaterial">Is Raw Material</Label>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeEditDialog}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isEditLoading}>
+                {isEditLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Update Template
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Template Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Product Template</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{selectedTemplate?.templateName}"? This action cannot be undone.
+              All associated product batches will also be affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeDeleteDialog}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleteLoading}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleteLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Template
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

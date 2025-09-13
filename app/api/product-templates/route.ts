@@ -24,8 +24,11 @@ export async function GET(request: NextRequest) {
       query.category = category;
     }
 
+    // Default to only active templates unless explicitly requested otherwise
     if (isActive !== null) {
       query.isActive = isActive === 'true';
+    } else {
+      query.isActive = true; // Default to only active templates
     }
 
     const templates = await collection
@@ -78,8 +81,10 @@ export async function POST(request: NextRequest) {
     const templatesCollection = db.collection<ProductTemplate>('productTemplates');
     const companiesCollection = db.collection<Company>('companies');
 
-    // Check if company exists
-    const company = await companiesCollection.findOne({ walletAddress: manufacturerAddress });
+    // Check if company exists (case-insensitive)
+    const company = await companiesCollection.findOne({ 
+      walletAddress: manufacturerAddress.toLowerCase() 
+    });
     if (!company) {
       return NextResponse.json(
         { error: 'Company not found' },
@@ -87,10 +92,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for duplicate template name for this manufacturer
+    // Check for duplicate template name for this manufacturer (excluding inactive templates)
     const existingTemplate = await templatesCollection.findOne({
       templateName,
-      manufacturerAddress
+      manufacturerAddress: manufacturerAddress.toLowerCase(),
+      isActive: { $ne: false }
     });
 
     if (existingTemplate) {
@@ -112,7 +118,7 @@ export async function POST(request: NextRequest) {
           : specifications.materials.split(',').map((m: string) => m.trim()).filter((m: string) => m),
         carbonFootprintPerUnit: specifications.carbonFootprintPerUnit
       },
-      manufacturerAddress,
+      manufacturerAddress: manufacturerAddress.toLowerCase(),
       isRawMaterial,
       isActive,
       createdAt: new Date(),
