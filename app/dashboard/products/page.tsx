@@ -53,19 +53,21 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { ProductTemplate, Plant } from "@/lib/models";
+import type { ProductTemplate, Plant } from "@/lib/models";
 import { useWallet } from "@/hooks/use-wallet";
 import { NetworkStatus } from "@/components/network-status";
+import { useMintBatch, useSmartContract } from "@/lib/smart-contract-wagmi";
 import {
   PageHeaderSkeleton,
   SearchBarSkeleton,
   FormSkeleton,
   ProductCardsSkeleton,
-  EmptyStateSkeleton,
 } from "@/components/ui/loading-skeletons";
 
 export default function ProductTemplatesPage() {
   const { address } = useWallet();
+  const { isConnected, isCorrectNetwork, switchToCorrectNetwork } = useSmartContract();
+  const { mintBatch, isLoading: isMinting, isConfirmed, error: mintError, tokenId } = useMintBatch();
   const [templates, setTemplates] = useState<ProductTemplate[]>([]);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -372,6 +374,18 @@ export default function ProductTemplatesPage() {
     e.preventDefault();
     if (!selectedTemplate) return;
 
+    // Check wallet connection and network
+    if (!isConnected) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    if (!isCorrectNetwork) {
+      toast.error('Please switch to Avalanche Fuji Testnet');
+      await switchToCorrectNetwork();
+      return;
+    }
+
     // Validate form data before submission
     if (!batchData.batchNumber || !batchData.quantity || !batchData.plantId) {
       toast.error('Please fill in all required fields');
@@ -381,12 +395,12 @@ export default function ProductTemplatesPage() {
     const batchNumber = parseInt(batchData.batchNumber);
     const quantity = parseInt(batchData.quantity);
 
-    if (isNaN(batchNumber) || batchNumber <= 0) {
+    if (Number.isNaN(batchNumber) || batchNumber <= 0) {
       toast.error('Batch number must be a valid positive number');
       return;
     }
 
-    if (isNaN(quantity) || quantity <= 0) {
+    if (Number.isNaN(quantity) || quantity <= 0) {
       toast.error('Quantity must be a valid positive number');
       return;
     }
@@ -417,25 +431,8 @@ export default function ProductTemplatesPage() {
       if (response.ok) {
         toast.success('Product batch created successfully! Now minting tokens...');
 
-        // Now mint tokens on the blockchain
+        // Now mint tokens on the blockchain using wagmi
         try {
-          const { smartContractService } = await import('@/lib/smart-contract');
-
-          // Initialize the smart contract service
-          await smartContractService.initialize();
-
-          // Validate and prepare minting parameters
-          const batchNumber = parseInt(batchData.batchNumber);
-          const quantity = parseInt(batchData.quantity);
-
-          if (isNaN(batchNumber) || batchNumber <= 0) {
-            throw new Error('Invalid batch number. Please enter a valid positive number.');
-          }
-
-          if (isNaN(quantity) || quantity <= 0) {
-            throw new Error('Invalid quantity. Please enter a valid positive number.');
-          }
-
           // Calculate carbon footprint (convert from tons to kg by multiplying by 1000)
           const carbonFootprintPerUnit = selectedTemplate.specifications.carbonFootprintPerUnit;
           const totalCarbonFootprintTons = carbonFootprintPerUnit * quantity;
@@ -459,31 +456,35 @@ export default function ProductTemplatesPage() {
             metadataURI: `https://api.carbontrack.com/metadata/batch/${batchNumber}`
           };
 
-          // Mint tokens
-          const mintResult = await smartContractService.mintBatch(mintParams);
+          // Mint tokens using wagmi hook
+          await mintBatch(mintParams);
 
-          // Update the batch with token information
-          const updateResponse = await fetch(`/api/product-batches/${result.batchId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              tokenId: mintResult.tokenId,
-              txHash: mintResult.txHash,
-              blockNumber: undefined // Will be filled later
-            }),
-          });
+          // Wait for transaction confirmation and get token ID
+          if (isConfirmed && tokenId) {
+            // Update the batch with token information
+            const updateResponse = await fetch(`/api/product-batches/${result.batchId}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                tokenId: tokenId,
+                txHash: '', // Will be filled by the hook
+                blockNumber: undefined // Will be filled later
+              }),
+            });
 
-          if (updateResponse.ok) {
-            toast.success(`Batch created and tokens minted successfully! Token ID: ${mintResult.tokenId}`);
-        } else {
-            toast.warning('Batch created but failed to update with token information');
+            if (updateResponse.ok) {
+              toast.success(`Batch created and tokens minted successfully! Token ID: ${tokenId}`);
+            } else {
+              toast.warning('Batch created but failed to update with token information');
+            }
           }
 
-        } catch (contractError: any) {
+        } catch (contractError: unknown) {
+          const errorMessage = contractError instanceof Error ? contractError.message : 'Unknown error';
           console.error('Smart contract error:', contractError);
-          toast.error(`Batch created but token minting failed: ${contractError.message}`);
+          toast.error(`Batch created but token minting failed: ${errorMessage}`);
         }
 
         closeBatchModal();
@@ -970,6 +971,13 @@ export default function ProductTemplatesPage() {
                 </div>
               </div>
             )}
+            {mintError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">
+                  Minting Error: {mintError.message}
+                </p>
+              </div>
+            )}
             <DialogFooter>
               <Button
                 type="button"
@@ -978,11 +986,11 @@ export default function ProductTemplatesPage() {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? (
+              <Button type="submit" disabled={isLoading || isMinting}>
+                {isLoading || isMinting ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                    Creating...
+                    {isLoading ? 'Creating...' : 'Minting...'}
                   </>
                 ) : (
                   <>

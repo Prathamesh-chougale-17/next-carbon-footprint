@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import client from '@/lib/mongodb';
-import { ProductBatch, ProductTemplate } from '@/lib/models';
+import type { ProductBatch, ProductTemplate } from '@/lib/models';
 import { ObjectId } from 'mongodb';
-import { smartContractService, BatchMintParams } from '@/lib/smart-contract';
 
 // GET /api/product-batches - Fetch product batches
 export async function GET(request: NextRequest) {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const db = client.db('carbon-footprint');
     const collection = db.collection<ProductBatch>('productBatches');
 
-    let query: any = {};
+    const query: Record<string, unknown> = {};
 
     if (manufacturerAddress) {
       query.manufacturerAddress = manufacturerAddress;
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     const result = await batchesCollection.insertOne(batch);
 
     if (result.insertedId) {
-      // Note: Token minting will be handled on the frontend
+      // Note: Token minting will be handled on the frontend using wagmi hooks
       // This is because it requires user interaction with MetaMask
       // The frontend will call the smart contract and then update the batch with token details
 

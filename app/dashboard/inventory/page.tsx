@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@/hooks/use-wallet";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,14 +28,13 @@ import {
     TrendingUp,
     Wallet,
     RefreshCw,
-    ArrowDownToLine,
-    ArrowUpFromLine
+    ArrowDownToLine
 } from "lucide-react";
 import { toast } from "sonner";
 import { NetworkStatus } from "@/components/network-status";
-import { smartContractService } from "@/lib/smart-contract";
+import { useSmartContract, useAllUserTokenBalances, useTransferTokens, useCurrentTokenId } from "@/lib/smart-contract-wagmi";
 import { format } from "date-fns";
-import { Partner } from "@/lib/models";
+import type { Partner, ProductTemplate, Plant } from "@/lib/models";
 
 // Loading skeleton components
 const PageHeaderSkeleton = () => (
@@ -51,10 +50,12 @@ const SearchBarSkeleton = () => (
     </div>
 );
 
-const TokenCardsSkeleton = () => (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i}>
+const TokenCardsSkeleton = () => {
+    const skeletonItems = Array.from({ length: 6 }, (_, i) => `skeleton-${i}`);
+    return (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {skeletonItems.map((id) => (
+                <Card key={id}>
                 <CardHeader>
                     <div className="flex items-start justify-between">
                         <div className="space-y-2">
@@ -76,9 +77,10 @@ const TokenCardsSkeleton = () => (
                     <Skeleton className="h-8 w-full" />
                 </CardContent>
             </Card>
-        ))}
-    </div>
-);
+            ))}
+        </div>
+    );
+};
 
 interface TokenBalance {
     tokenId: number;
@@ -113,7 +115,10 @@ interface DatabaseBatch {
 
 export default function InventoryPage() {
     const { address } = useWallet();
-    const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([]);
+    const { isConnected, isCorrectNetwork, switchToCorrectNetwork } = useSmartContract();
+    const { balances: tokenBalances, isLoading: isLoadingBalances, error: balancesError } = useAllUserTokenBalances(address || "");
+    const { transferTokens, isLoading: isTransferring, error: transferError } = useTransferTokens();
+    const { currentTokenId, isLoading: isLoadingTokenId } = useCurrentTokenId();
     const [databaseBatches, setDatabaseBatches] = useState<DatabaseBatch[]>([]);
     const [customers, setCustomers] = useState<Partner[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -128,39 +133,10 @@ export default function InventoryPage() {
         reason: ""
     });
 
-    // Fetch token balances from blockchain
-    const fetchTokenBalances = async () => {
-        if (!address) {
-            console.log('No wallet address available');
-            return;
-        }
-
-        try {
-            console.log('Fetching token balances for address:', address);
-            await smartContractService.initialize();
-
-            // First, let's check what tokens exist
-            const allTokens = await smartContractService.getAllMintedTokens();
-            console.log('All minted tokens on blockchain:', allTokens);
-
-            // Then get balances for this user
-            const balances = await smartContractService.getUserTokenBalances(address);
-            console.log('Token balances fetched for user:', balances);
-            setTokenBalances(balances);
-
-            if (balances.length === 0 && allTokens.length > 0) {
-                toast.info(`Found ${allTokens.length} tokens on blockchain, but none owned by your address. Check console for details.`);
-            } else if (balances.length > 0) {
-                toast.success(`Found ${balances.length} tokens owned by your address`);
-            }
-        } catch (error) {
-            console.error('Error fetching token balances:', error);
-            toast.error('Failed to fetch token balances from blockchain');
-        }
-    };
+    // Token balances are now fetched automatically by the wagmi hook
 
     // Fetch database batches for additional info
-    const fetchDatabaseBatches = async () => {
+    const fetchDatabaseBatches = useCallback(async () => {
         if (!address) return;
 
         try {
@@ -172,10 +148,10 @@ export default function InventoryPage() {
         } catch (error) {
             console.error('Error fetching database batches:', error);
         }
-    };
+    }, [address]);
 
     // Fetch customers from partners
-    const fetchCustomers = async () => {
+    const fetchCustomers = useCallback(async () => {
         if (!address) return;
 
         try {
@@ -190,7 +166,7 @@ export default function InventoryPage() {
         } catch (error) {
             console.error('Error fetching customers:', error);
         }
-    };
+    }, [address]);
 
     // Fetch batch details by batch ID
     const fetchBatchDetails = async (batchId: string) => {
@@ -239,7 +215,6 @@ export default function InventoryPage() {
         const loadData = async () => {
             setIsInitialLoading(true);
             await Promise.all([
-                fetchTokenBalances(),
                 fetchDatabaseBatches(),
                 fetchCustomers()
             ]);
@@ -249,7 +224,14 @@ export default function InventoryPage() {
         if (address) {
             loadData();
         }
-    }, [address]);
+    }, [address, fetchDatabaseBatches, fetchCustomers]);
+
+    // Update initial loading state based on wagmi hooks
+    useEffect(() => {
+        if (!isLoadingBalances && !isLoadingTokenId) {
+            setIsInitialLoading(false);
+        }
+    }, [isLoadingBalances, isLoadingTokenId]);
 
     // Helper functions
     const getDatabaseBatch = (tokenId: number): DatabaseBatch | undefined => {
@@ -260,23 +242,14 @@ export default function InventoryPage() {
         return `https://testnet.snowtrace.io/tx/${txHash}?chainid=43113`;
     };
 
-    const getContractExplorerUrl = (): string => {
-        return `https://testnet.snowtrace.io/address/0xD6B231A6605490E83863D3B71c1C01e4E5B1212D`;
-    };
-
     const formatAddress = (address: string): string => {
         return `${address.slice(0, 6)}...${address.slice(-4)}`;
     };
 
-    // Get database batch by batch number
-    const getDatabaseBatchByNumber = (batchNumber: string) => {
-        return databaseBatches.find(batch => batch.batchNumber === batchNumber);
-    };
-
     // Token Card Component with dynamic data fetching
     const TokenCard = ({ token, dbBatch }: { token: TokenBalance; dbBatch?: DatabaseBatch }) => {
-        const [productTemplate, setProductTemplate] = useState<any>(null);
-        const [plant, setPlant] = useState<any>(null);
+        const [productTemplate, setProductTemplate] = useState<ProductTemplate | null>(null);
+        const [plant, setPlant] = useState<Plant | null>(null);
         const [loading, setLoading] = useState(false);
 
         useEffect(() => {
@@ -305,7 +278,7 @@ export default function InventoryPage() {
             };
 
             loadEnrichedData();
-        }, [token.tokenId]);
+        }, [token.batchInfo.batchNumber]);
 
         return (
             <Card className="hover:shadow-md transition-shadow">
@@ -321,7 +294,7 @@ export default function InventoryPage() {
                             </div>
                             <CardDescription className="mt-1">
                                 Batch #{token.batchInfo.batchNumber}
-                                {productTemplate && (
+                                {productTemplate?.templateName && (
                                     <span className="block text-xs text-muted-foreground mt-1">
                                         {productTemplate.templateName}
                                     </span>
@@ -406,8 +379,8 @@ export default function InventoryPage() {
 
     // Token Details Modal Component with dynamic data fetching
     const TokenDetailsModal = ({ token, dbBatch }: { token: TokenBalance; dbBatch?: DatabaseBatch }) => {
-        const [productTemplate, setProductTemplate] = useState<any>(null);
-        const [plant, setPlant] = useState<any>(null);
+        const [productTemplate, setProductTemplate] = useState<ProductTemplate | null>(null);
+        const [plant, setPlant] = useState<Plant | null>(null);
         const [loading, setLoading] = useState(false);
 
         useEffect(() => {
@@ -436,7 +409,7 @@ export default function InventoryPage() {
             };
 
             loadEnrichedData();
-        }, [token.tokenId]);
+        }, [token.batchInfo.batchNumber]);
 
         return (
             <div className="space-y-6">
@@ -487,7 +460,7 @@ export default function InventoryPage() {
                             </div>
                             <div>
                                 <Label className="text-sm font-medium">Raw Material</Label>
-                                <p className="text-sm text-muted-foreground">{productTemplate.specifications.isRawMaterial ? 'Yes' : 'No'}</p>
+                                <p className="text-sm text-muted-foreground">{productTemplate.isRawMaterial ? 'Yes' : 'No'}</p>
                             </div>
                         </div>
                         {productTemplate.description && (
@@ -612,13 +585,20 @@ export default function InventoryPage() {
     const handleTransfer = async () => {
         if (!selectedToken || !address) return;
 
+        // Check wallet connection and network
+        if (!isConnected) {
+            toast.error('Please connect your wallet first');
+            return;
+        }
+
+        if (!isCorrectNetwork) {
+            toast.error('Please switch to Avalanche Fuji Testnet');
+            await switchToCorrectNetwork();
+            return;
+        }
+
         setIsLoading(true);
         try {
-            // Ensure contract is initialized
-            if (!smartContractService.isInitialized()) {
-                await smartContractService.initialize();
-            }
-
             console.log('Initiating transfer:', {
                 to: transferData.to,
                 tokenId: selectedToken.tokenId,
@@ -626,14 +606,13 @@ export default function InventoryPage() {
                 reason: transferData.reason
             });
 
-            const result = await smartContractService.transferTokens(
+            // Use wagmi hook for transfer
+            await transferTokens(
                 transferData.to,
                 selectedToken.tokenId,
                 parseInt(transferData.quantity),
                 transferData.reason
             );
-
-            console.log('Transfer result:', result);
 
             // Save transfer record to database
             try {
@@ -648,9 +627,9 @@ export default function InventoryPage() {
                         tokenId: selectedToken.tokenId,
                         quantity: parseInt(transferData.quantity),
                         reason: transferData.reason,
-                        txHash: result.txHash,
+                        txHash: '', // Will be filled by wagmi hook
                         blockNumber: undefined, // Will be updated later if needed
-                        gasUsed: result.gasUsed,
+                        gasUsed: '', // Will be filled by wagmi hook
                         status: 'confirmed'
                     }),
                 });
@@ -665,28 +644,26 @@ export default function InventoryPage() {
                 // Don't fail the entire transfer if DB save fails
             }
 
-            toast.success(`Transfer successful! Transaction: ${result.txHash.slice(0, 10)}...`);
-
-            // Refresh token balances
-            await fetchTokenBalances();
+            toast.success('Transfer successful!');
 
             // Close modal and reset form
             setShowTransferModal(false);
             setTransferData({ to: "", quantity: "", reason: "" });
             setSelectedToken(null);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             console.error('Transfer error:', error);
 
             // Check if it's a user rejection error
-            if (error.message?.includes('user rejected') || error.code === 4001) {
+            if (errorMessage.includes('user rejected') || errorMessage.includes('rejected')) {
                 toast.error('Transfer cancelled by user');
-            } else if (error.message?.includes('insufficient funds')) {
+            } else if (errorMessage.includes('insufficient funds')) {
                 toast.error('Insufficient funds for gas');
-            } else if (error.message?.includes('network')) {
+            } else if (errorMessage.includes('network')) {
                 toast.error('Network error. Please check your connection.');
             } else {
-                toast.error(`Transfer failed: ${error.message || 'Unknown error'}`);
+                toast.error(`Transfer failed: ${errorMessage}`);
             }
         } finally {
             setIsLoading(false);
@@ -708,11 +685,12 @@ export default function InventoryPage() {
     const filteredTokens = tokenBalances.filter(token => {
         const batch = getDatabaseBatch(token.tokenId);
         const searchLower = searchTerm.toLowerCase();
+        const batchInfo = token.batchInfo as TokenBalance['batchInfo'];
 
         return (
-            token.batchInfo.batchNumber.toString().includes(searchLower) ||
-            token.batchInfo.templateId.toLowerCase().includes(searchLower) ||
-            (batch && batch.batchNumber.toLowerCase().includes(searchLower))
+            batchInfo.batchNumber.toString().includes(searchLower) ||
+            batchInfo.templateId.toLowerCase().includes(searchLower) ||
+            (batch?.batchNumber.toLowerCase().includes(searchLower))
         );
     });
 
@@ -739,39 +717,23 @@ export default function InventoryPage() {
                 <div className="flex items-center space-x-2">
                     <Button
                         variant="outline"
-                        onClick={async () => {
-                            try {
-                                console.log('=== DEBUGGING TOKEN INVENTORY ===');
-                                console.log('Wallet address:', address);
-
-                                await smartContractService.initialize();
-                                console.log('Smart contract service initialized');
-
-                                // Test basic contract connection
-                                const currentTokenId = await smartContractService.getCurrentTokenId();
-                                console.log('Current token ID counter:', currentTokenId);
-
-                                // Get all minted tokens
-                                const allTokens = await smartContractService.getAllMintedTokens();
-                                console.log('All minted tokens:', allTokens);
-
-                                // Get user balances
-                                if (address) {
-                                    const userBalances = await smartContractService.getUserTokenBalances(address);
-                                    console.log('User token balances:', userBalances);
-                                }
-
-                                toast.success(`Found ${allTokens.length} minted tokens. Check console for details.`);
-                            } catch (error) {
-                                console.error('Debug error:', error);
-                                toast.error(`Debug failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                            }
+                        onClick={() => {
+                            console.log('=== DEBUGGING TOKEN INVENTORY ===');
+                            console.log('Wallet address:', address);
+                            console.log('Is connected:', isConnected);
+                            console.log('Is correct network:', isCorrectNetwork);
+                            console.log('Current token ID:', currentTokenId);
+                            console.log('Token balances:', tokenBalances);
+                            console.log('Loading balances:', isLoadingBalances);
+                            console.log('Balances error:', balancesError);
+                            
+                            toast.success(`Found ${tokenBalances.length} token balances. Check console for details.`);
                         }}
                     >
                         <Package className="h-4 w-4 mr-2" />
                         Debug
                     </Button>
-                    <Button onClick={() => Promise.all([fetchTokenBalances(), fetchDatabaseBatches(), fetchCustomers()])}>
+                    <Button onClick={() => Promise.all([fetchDatabaseBatches(), fetchCustomers()])}>
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Refresh
                     </Button>
@@ -781,6 +743,15 @@ export default function InventoryPage() {
 
             {/* Network Status */}
             <NetworkStatus />
+
+            {/* Error Display */}
+            {balancesError && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-600">
+                        Error loading token balances: {balancesError.message}
+                    </p>
+                </div>
+            )}
 
             {/* Search */}
             <div className="flex items-center space-x-2">
@@ -830,7 +801,10 @@ export default function InventoryPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {(tokenBalances.reduce((sum, token) => sum + (token.batchInfo.carbonFootprint * token.balance / token.batchInfo.quantity), 0) / 1000).toFixed(2)} tons
+                            {(tokenBalances.reduce((sum, token) => {
+                                const batchInfo = token.batchInfo as TokenBalance['batchInfo'];
+                                return sum + (batchInfo.carbonFootprint * token.balance / batchInfo.quantity);
+                            }, 0) / 1000).toFixed(2)} tons
                         </div>
                         <p className="text-xs text-muted-foreground">
                             Total CO₂ footprint
@@ -863,7 +837,9 @@ export default function InventoryPage() {
                                 : "No tokens match your current search."}
                         </p>
                         {tokenBalances.length === 0 && (
-                            <Button onClick={() => window.location.href = '/dashboard/products'}>
+                            <Button onClick={() => {
+                                window.location.href = '/dashboard/products';
+                            }}>
                                 <Package className="h-4 w-4 mr-2" />
                                 Create Your First Batch
                             </Button>
@@ -874,7 +850,8 @@ export default function InventoryPage() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {filteredTokens.map((token) => {
                         const dbBatch = getDatabaseBatch(token.tokenId);
-                        return <TokenCard key={token.tokenId} token={token} dbBatch={dbBatch} />;
+                        const typedToken = token as TokenBalance;
+                        return <TokenCard key={`token-${token.tokenId}`} token={typedToken} dbBatch={dbBatch} />;
                     })}
                 </div>
             )}
@@ -950,6 +927,13 @@ export default function InventoryPage() {
                                 placeholder="e.g., Product delivery, Customer order fulfillment"
                             />
                         </div>
+                        {transferError && (
+                            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-sm text-red-600">
+                                    Transfer Error: {transferError.message}
+                                </p>
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowTransferModal(false)}>
@@ -957,9 +941,9 @@ export default function InventoryPage() {
                         </Button>
                         <Button
                             onClick={handleTransfer}
-                            disabled={isLoading || !transferData.to || transferData.to === "no-customers" || !transferData.quantity || parseInt(transferData.quantity) > (selectedToken?.balance || 0) || customers.length === 0}
+                            disabled={isLoading || isTransferring || !transferData.to || transferData.to === "no-customers" || !transferData.quantity || parseInt(transferData.quantity) > (selectedToken?.balance || 0) || customers.length === 0}
                         >
-                            {isLoading ? (
+                            {isLoading || isTransferring ? (
                                 <>
                                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                                     Transferring...
@@ -996,7 +980,9 @@ export default function InventoryPage() {
                         </Button>
                         <Button onClick={() => {
                             setShowBatchModal(false);
-                            openTransferModal(selectedToken!);
+                            if (selectedToken) {
+                                openTransferModal(selectedToken);
+                            }
                         }}>
                             <ArrowRightLeft className="h-4 w-4 mr-2" />
                             Transfer Tokens
