@@ -55,6 +55,7 @@ import {
 import { toast } from "sonner";
 import { ProductTemplate, Plant } from "@/lib/models";
 import { useWallet } from "@/hooks/use-wallet";
+import { NetworkStatus } from "@/components/network-status";
 import {
   PageHeaderSkeleton,
   SearchBarSkeleton,
@@ -159,8 +160,9 @@ export default function ProductTemplatesPage() {
 
   const openBatchModal = async (template: ProductTemplate) => {
     setSelectedTemplate(template);
+    // Generate a numeric batch number (using timestamp)
     setBatchData({
-      batchNumber: `BATCH-${Date.now()}`,
+      batchNumber: Date.now().toString(),
       quantity: "",
       plantId: ""
     });
@@ -370,15 +372,34 @@ export default function ProductTemplatesPage() {
     e.preventDefault();
     if (!selectedTemplate) return;
 
+    // Validate form data before submission
+    if (!batchData.batchNumber || !batchData.quantity || !batchData.plantId) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    const batchNumber = parseInt(batchData.batchNumber);
+    const quantity = parseInt(batchData.quantity);
+
+    if (isNaN(batchNumber) || batchNumber <= 0) {
+      toast.error('Batch number must be a valid positive number');
+      return;
+    }
+
+    if (isNaN(quantity) || quantity <= 0) {
+      toast.error('Quantity must be a valid positive number');
+      return;
+    }
+
     setIsLoading(true);
     try {
+      // First, create the batch in the database
       const batchPayload = {
         batchNumber: batchData.batchNumber,
         templateId: selectedTemplate._id?.toString(),
         quantity: parseInt(batchData.quantity),
         productionDate: new Date().toISOString(),
-        batchStatus: 'production',
-        carbonFootprint: selectedTemplate.specifications.carbonFootprintPerUnit * parseInt(batchData.quantity),
+        carbonFootprint: Math.round(selectedTemplate.specifications.carbonFootprintPerUnit * parseInt(batchData.quantity) * 1000), // Convert from tons to kg
         manufacturerAddress: address,
         plantId: batchData.plantId
       };
@@ -394,8 +415,80 @@ export default function ProductTemplatesPage() {
       const result = await response.json();
 
       if (response.ok) {
-        toast.success('Product batch created and tokens minted successfully!');
+        toast.success('Product batch created successfully! Now minting tokens...');
+
+        // Now mint tokens on the blockchain
+        try {
+          const { smartContractService } = await import('@/lib/smart-contract');
+
+          // Initialize the smart contract service
+          await smartContractService.initialize();
+
+          // Validate and prepare minting parameters
+          const batchNumber = parseInt(batchData.batchNumber);
+          const quantity = parseInt(batchData.quantity);
+
+          if (isNaN(batchNumber) || batchNumber <= 0) {
+            throw new Error('Invalid batch number. Please enter a valid positive number.');
+          }
+
+          if (isNaN(quantity) || quantity <= 0) {
+            throw new Error('Invalid quantity. Please enter a valid positive number.');
+          }
+
+          // Calculate carbon footprint (convert from tons to kg by multiplying by 1000)
+          const carbonFootprintPerUnit = selectedTemplate.specifications.carbonFootprintPerUnit;
+          const totalCarbonFootprintTons = carbonFootprintPerUnit * quantity;
+          const totalCarbonFootprintKg = Math.round(totalCarbonFootprintTons * 1000);
+
+          console.log('Carbon footprint calculation (tons to kg):', {
+            carbonFootprintPerUnitTons: carbonFootprintPerUnit,
+            quantity,
+            totalCarbonFootprintTons,
+            totalCarbonFootprintKg
+          });
+
+          const mintParams = {
+            batchNumber,
+            templateId: selectedTemplate._id?.toString() || '',
+            quantity,
+            productionDate: Math.floor(Date.now() / 1000), // Unix timestamp
+            expiryDate: 0, // No expiry for now
+            carbonFootprint: totalCarbonFootprintKg,
+            plantId: batchData.plantId,
+            metadataURI: `https://api.carbontrack.com/metadata/batch/${batchNumber}`
+          };
+
+          // Mint tokens
+          const mintResult = await smartContractService.mintBatch(mintParams);
+
+          // Update the batch with token information
+          const updateResponse = await fetch(`/api/product-batches/${result.batchId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tokenId: mintResult.tokenId,
+              txHash: mintResult.txHash,
+              blockNumber: undefined // Will be filled later
+            }),
+          });
+
+          if (updateResponse.ok) {
+            toast.success(`Batch created and tokens minted successfully! Token ID: ${mintResult.tokenId}`);
+          } else {
+            toast.warning('Batch created but failed to update with token information');
+          }
+
+        } catch (contractError: any) {
+          console.error('Smart contract error:', contractError);
+          toast.error(`Batch created but token minting failed: ${contractError.message}`);
+        }
+
         closeBatchModal();
+        setBatchData({ batchNumber: '', quantity: '', plantId: '' });
+        fetchTemplates();
       } else {
         toast.error(result.error || 'Failed to create batch');
       }
@@ -712,8 +805,8 @@ export default function ProductTemplatesPage() {
                     <Factory className="h-3 w-3 mr-1" />
                     Create Batch
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => openEditDialog(template)}
                   >
@@ -768,14 +861,19 @@ export default function ProductTemplatesPage() {
               Create a new production batch for {selectedTemplate?.templateName}
             </DialogDescription>
           </DialogHeader>
+          <div className="mb-4">
+            <NetworkStatus />
+          </div>
           <form onSubmit={handleBatchSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="batchNumber">Batch Number *</Label>
               <Input
                 id="batchNumber"
+                type="number"
                 value={batchData.batchNumber}
                 onChange={(e) => handleBatchInputChange("batchNumber", e.target.value)}
                 placeholder="Enter batch number"
+                min="1"
                 required
               />
             </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import client from '@/lib/mongodb';
 import { ProductBatch, ProductTemplate } from '@/lib/models';
 import { ObjectId } from 'mongodb';
+import { smartContractService, BatchMintParams } from '@/lib/smart-contract';
 
 // GET /api/product-batches - Fetch product batches
 export async function GET(request: NextRequest) {
@@ -104,16 +105,15 @@ export async function POST(request: NextRequest) {
     const result = await batchesCollection.insertOne(batch);
 
     if (result.insertedId) {
-      // TODO: Add ERC-1155 token minting here
-      // 1. Generate token ID
-      // 2. Upload metadata to IPFS
-      // 3. Mint tokens on blockchain
-      // 4. Update batch with token details
+      // Note: Token minting will be handled on the frontend
+      // This is because it requires user interaction with MetaMask
+      // The frontend will call the smart contract and then update the batch with token details
 
       return NextResponse.json(
         {
-          message: 'Product batch created successfully',
-          batchId: result.insertedId.toString()
+          message: 'Product batch created successfully. Please complete token minting on the frontend.',
+          batchId: result.insertedId.toString(),
+          requiresTokenMinting: true
         },
         { status: 201 }
       );

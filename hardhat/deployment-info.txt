@@ -1,0 +1,16 @@
+🚀 SUPPLY CHAIN TOKENS - DEPLOYMENT SUCCESSFUL! 🚀
+
+Contract Address: 0xD6B231A6605490E83863D3B71c1C01e4E5B1212D
+Deployment Transaction: 0x2020a1814d3f08ac314593b1e4c7c84720c9d8625a59f776f41a8b2378920bed
+Network: Avalanche Fuji Testnet
+Chain ID: 43113
+Gas Used: 2,865,985
+Owner: 0xCE977C6cB014a07e537E9D6E5ED33840C3688949
+
+🔗 View on SnowTrace:
+https://testnet.snowtrace.io/address/0xD6B231A6605490E83863D3B71c1C01e4E5B1212D
+
+📊 Transaction Details:
+https://testnet.snowtrace.io/tx/0x2020a1814d3f08ac314593b1e4c7c84720c9d8625a59f776f41a8b2378920bed
+
+✅ Contract is live and ready for integration!
