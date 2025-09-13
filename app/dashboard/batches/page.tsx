@@ -16,7 +16,8 @@ import {
     Hash,
     TrendingUp,
     Plus,
-    Settings
+    Settings,
+    ExternalLink
 } from "lucide-react";
 import { ProductBatch, ProductTemplate, Plant } from "@/lib/models";
 import { format } from "date-fns";
@@ -116,6 +117,18 @@ export default function BatchesPage() {
         return plant?.plantName || "Unknown Plant";
     };
 
+    const getExplorerUrl = (txHash: string): string => {
+        return `https://testnet.snowtrace.io/tx/${txHash}?chainid=43113`;
+    };
+
+    const getContractExplorerUrl = (): string => {
+        return `https://testnet.snowtrace.io/address/0xD6B231A6605490E83863D3B71c1C01e4E5B1212D`;
+    };
+
+    const formatAddress = (address: string): string => {
+        return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    };
+
 
     const filteredBatches = batches.filter(batch => {
         const matchesSearch = batch.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -200,12 +213,37 @@ export default function BatchesPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Quantity</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        <Hash className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
                             {batches.reduce((sum, batch) => sum + batch.quantity, 0)}
                         </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Carbon Footprint</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">
+                            {batches.reduce((sum, batch) => sum + batch.carbonFootprint, 0).toLocaleString()} kg
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Blockchain Anchored</CardTitle>
+                        <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">
+                            {batches.filter(batch => batch.tokenId).length}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            {batches.length > 0 ? Math.round((batches.filter(batch => batch.tokenId).length / batches.length) * 100) : 0}% of total
+                        </p>
                     </CardContent>
                 </Card>
             </div>
@@ -233,8 +271,22 @@ export default function BatchesPage() {
                         <Card key={batch._id?.toString()} className="hover:shadow-md transition-shadow">
                             <CardHeader>
                                 <div className="flex items-start justify-between">
-                                    <div>
-                                        <CardTitle className="text-lg">{batch.batchNumber}</CardTitle>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <CardTitle className="text-lg">{batch.batchNumber}</CardTitle>
+                                            {batch.tokenId && (
+                                                <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
+                                                    <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                                                    Anchored
+                                                </Badge>
+                                            )}
+                                            {!batch.tokenId && (
+                                                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
+                                                    <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
+                                                    Pending
+                                                </Badge>
+                                            )}
+                                        </div>
                                         <CardDescription className="mt-1">
                                             {getTemplateName(batch.templateId)}
                                         </CardDescription>
@@ -267,16 +319,67 @@ export default function BatchesPage() {
                                     </div>
 
                                     {batch.tokenId && (
-                                        <div className="p-2 bg-muted rounded-lg">
-                                            <div className="text-xs text-muted-foreground mb-1">Token Details</div>
-                                            <div className="text-sm font-mono">
-                                                Token ID: {batch.tokenId}
+                                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="text-xs font-medium text-green-800 flex items-center gap-1">
+                                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                    Blockchain Anchored
+                                                </div>
+                                                <Badge variant="secondary" className="text-xs">
+                                                    Token #{batch.tokenId}
+                                                </Badge>
                                             </div>
+
                                             {batch.txHash && (
-                                                <div className="text-xs text-muted-foreground mt-1">
-                                                    TX: {batch.txHash.slice(0, 10)}...
+                                                <div className="space-y-1">
+                                                    <div className="text-xs text-muted-foreground">
+                                                        Transaction Hash:
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <code className="text-xs bg-white px-2 py-1 rounded border font-mono">
+                                                            {batch.txHash.slice(0, 10)}...{batch.txHash.slice(-8)}
+                                                        </code>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="h-6 px-2 text-xs"
+                                                            onClick={() => {
+                                                                const url = batch.txHash ? getExplorerUrl(batch.txHash) : undefined;
+                                                                if (url) {
+                                                                    window.open(url, '_blank');
+                                                                }
+                                                            }}
+                                                        >
+                                                            <ExternalLink className="h-3 w-3 mr-1" />
+                                                            View
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             )}
+
+                                            <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                                                <span>Contract: {formatAddress('0xD6B231A6605490E83863D3B71c1C01e4E5B1212D')}</span>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-5 px-1 text-xs text-blue-600 hover:text-blue-800"
+                                                    onClick={() => window.open(getContractExplorerUrl(), '_blank')}
+                                                >
+                                                    <ExternalLink className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {!batch.tokenId && (
+                                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                            <div className="flex items-center gap-2 text-yellow-800">
+                                                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                                <span className="text-xs font-medium">Pending Token Creation</span>
+                                            </div>
+                                            <div className="text-xs text-yellow-700 mt-1">
+                                                This batch is not yet anchored on the blockchain
+                                            </div>
                                         </div>
                                     )}
                                 </div>
