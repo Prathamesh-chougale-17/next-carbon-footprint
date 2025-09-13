@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -123,7 +123,7 @@ export default function RegisterCompanyPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Manufacturer">Manufacturer</SelectItem>
-                      <SelectItem value="Retailer">Retailer</SelectItem>
+                      <SelectItem value="OEM">OEM</SelectItem>
                       <SelectItem value="Logistics">Logistics</SelectItem>
                     </SelectContent>
                   </Select>

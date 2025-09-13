@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ export default function ProductsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isCompanyRegistered, setIsCompanyRegistered] = useState(true);
   const [formData, setFormData] = useState({
     productName: "",
     description: "",
@@ -52,6 +54,10 @@ export default function ProductsPage() {
       if (response.ok) {
         const data = await response.json();
         setProducts(data);
+        setIsCompanyRegistered(true);
+      } else if (response.status === 400) {
+        // Company might not be registered
+        setIsCompanyRegistered(false);
       }
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -101,7 +107,11 @@ export default function ProductsPage() {
         });
         fetchProducts();
       } else {
-        toast.error(result.error || "Failed to register product");
+        if (result.error?.includes('Company not registered')) {
+          toast.error("Please register your company first before adding products");
+        } else {
+          toast.error(result.error || "Failed to register product");
+        }
       }
     } catch (error) {
       console.error('Error registering product:', error);
@@ -126,7 +136,10 @@ export default function ProductsPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button onClick={() => setShowForm(!showForm)}>
+          <Button 
+            onClick={() => setShowForm(!showForm)}
+            disabled={!isCompanyRegistered}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Product
           </Button>
@@ -147,8 +160,30 @@ export default function ProductsPage() {
         </div>
       </div>
 
+      {/* Company Registration Notice */}
+      {!isCompanyRegistered && (
+        <Card className="border-orange-200 bg-orange-50 dark:bg-orange-900/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center space-x-3">
+              <Factory className="h-8 w-8 text-orange-600" />
+              <div>
+                <h3 className="font-semibold text-orange-800 dark:text-orange-200">
+                  Company Registration Required
+                </h3>
+                <p className="text-sm text-orange-700 dark:text-orange-300">
+                  You need to register your company before you can add products. 
+                  <Link href="/dashboard/register-company" className="underline ml-1">
+                    Register your company now
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Add Product Form */}
-      {showForm && (
+      {showForm && isCompanyRegistered && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -313,7 +348,7 @@ export default function ProductsPage() {
         ))}
       </div>
 
-      {filteredProducts.length === 0 && (
+      {filteredProducts.length === 0 && isCompanyRegistered && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />

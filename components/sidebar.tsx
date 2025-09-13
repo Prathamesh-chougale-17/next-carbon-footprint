@@ -1,6 +1,5 @@
 "use client";
 
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { 
   LayoutDashboard, 
@@ -12,7 +11,8 @@ import {
   Factory, 
   QrCode, 
   LogOut,
-  Leaf
+  Leaf,
+  Building2
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -22,10 +22,16 @@ const menuItems = [
     title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
-    access: ["Manufacturer", "Retailer", "Logistics"]
+    access: ["Manufacturer", "OEM", "Logistics"]
   },
   {
-    title: "Products",
+    title: "Register Company",
+    url: "/dashboard/register-company",
+    icon: Building2,
+    access: ["Manufacturer", "OEM", "Logistics"]
+  },
+  {
+    title: "Products Registration",
     url: "/dashboard/products",
     icon: Package,
     access: ["Manufacturer"]
@@ -34,7 +40,7 @@ const menuItems = [
     title: "Clients",
     url: "/dashboard/clients",
     icon: Users,
-    access: ["Manufacturer", "Retailer", "Logistics"]
+    access: ["Manufacturer", "OEM", "Logistics"]
   },
   {
     title: "Transportation",
@@ -52,7 +58,7 @@ const menuItems = [
     title: "Asset Transfer",
     url: "/dashboard/asset-transfer",
     icon: ArrowRightLeft,
-    access: ["Manufacturer", "Retailer", "Logistics"]
+    access: ["Manufacturer", "OEM", "Logistics"]
   },
   {
     title: "Manufacture",
@@ -64,7 +70,7 @@ const menuItems = [
     title: "QR Code",
     url: "/dashboard/qr-code",
     icon: QrCode,
-    access: ["Manufacturer", "Retailer", "Logistics"]
+    access: ["Manufacturer", "OEM", "Logistics"]
   },
 ];
 

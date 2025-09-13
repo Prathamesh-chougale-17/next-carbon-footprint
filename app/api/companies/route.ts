@@ -18,12 +18,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('Company registration request body:', body);
+    
     const companyData: Omit<Company, '_id'> = {
       ...body,
+      walletAddress: body.walletAddress.toLowerCase(), // Normalize to lowercase
       products: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+
+    console.log('Company data to be saved:', companyData);
 
     await client.connect();
     const db = client.db('carbon-footprint');
@@ -32,6 +37,8 @@ export async function POST(request: NextRequest) {
     const existingCompany = await db.collection<Company>('companies').findOne({
       walletAddress: companyData.walletAddress
     });
+    
+    console.log('Existing company found:', existingCompany);
     
     if (existingCompany) {
       return NextResponse.json({ error: 'Company already registered' }, { status: 400 });
