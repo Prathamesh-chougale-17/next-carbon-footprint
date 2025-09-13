@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import client from '@/lib/mongodb';
-import type { Plant } from '@/lib/models';
+import { Plant } from '@/lib/models';
 import { ObjectId } from 'mongodb';
 
 // GET /api/plants/[id] - Get specific plant
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json(
@@ -44,10 +44,10 @@ export async function GET(
 // PUT /api/plants/[id] - Update plant
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const body = await request.json();
 
     if (!ObjectId.isValid(id)) {
@@ -70,36 +70,14 @@ export async function PUT(
       );
     }
 
-    // Check for duplicate plant code (excluding current plant and soft-deleted plants)
-    if (body.plantCode && body.plantCode !== existingPlant.plantCode) {
-      const duplicatePlant = await collection.findOne({
-        plantCode: body.plantCode,
-        companyAddress: (body.companyAddress || existingPlant.companyAddress).toLowerCase(),
-        isActive: { $ne: false },
-        _id: { $ne: new ObjectId(id) }
-      });
-
-      if (duplicatePlant) {
-        return NextResponse.json(
-          { error: 'Plant with this code already exists for this company' },
-          { status: 409 }
-        );
-      }
-    }
-
     // Prepare update data
     const updateData: Partial<Plant> = {
       ...body,
       updatedAt: new Date()
     };
 
-    // Normalize company address if provided
-    if (body.companyAddress) {
-      updateData.companyAddress = body.companyAddress.toLowerCase();
-    }
-
     // Handle location coordinates if provided
-    if (body.location) {
+    if (body.location && body.location.coordinates) {
       updateData.location = {
         ...body.location,
         coordinates: {
@@ -135,10 +113,10 @@ export async function PUT(
 // DELETE /api/plants/[id] - Delete plant
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
 
     if (!ObjectId.isValid(id)) {
       return NextResponse.json(

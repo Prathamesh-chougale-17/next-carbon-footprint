@@ -70,33 +70,11 @@ export async function PUT(
       );
     }
 
-    // Check for duplicate template name (excluding current template and inactive templates)
-    if (body.templateName && body.templateName !== existingTemplate.templateName) {
-      const duplicateTemplate = await collection.findOne({
-        templateName: body.templateName,
-        manufacturerAddress: (body.manufacturerAddress || existingTemplate.manufacturerAddress).toLowerCase(),
-        isActive: { $ne: false },
-        _id: { $ne: new ObjectId(id) }
-      });
-
-      if (duplicateTemplate) {
-        return NextResponse.json(
-          { error: 'Template with this name already exists for this manufacturer' },
-          { status: 409 }
-        );
-      }
-    }
-
     // Prepare update data
     const updateData: Partial<ProductTemplate> = {
       ...body,
       updatedAt: new Date()
     };
-
-    // Normalize manufacturer address if provided
-    if (body.manufacturerAddress) {
-      updateData.manufacturerAddress = body.manufacturerAddress.toLowerCase();
-    }
 
     // If specifications are being updated, ensure proper structure
     if (body.specifications) {

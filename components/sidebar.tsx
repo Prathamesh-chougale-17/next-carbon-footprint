@@ -4,11 +4,11 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupConte
 import {
   LayoutDashboard,
   Package,
-  Users,
   Factory,
   LogOut,
   Leaf,
-  Building2
+  Building2,
+  Users
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -39,8 +39,8 @@ const menuItems = [
     access: ["Manufacturer"]
   },
   {
-    title: "Clients",
-    url: "/dashboard/clients",
+    title: "Partners",
+    url: "/dashboard/partners",
     icon: Users,
     access: ["Manufacturer", "Retailer", "Logistics"]
   },

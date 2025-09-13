@@ -14,9 +14,7 @@ export async function GET(request: NextRequest) {
     const db = client.db('carbon-footprint');
     const collection = db.collection<Plant>('plants');
 
-    let query: any = {
-      isActive: { $ne: false } // Only return active plants (exclude soft-deleted)
-    };
+    let query: any = {};
 
     if (companyAddress) {
       query.companyAddress = companyAddress;
@@ -78,10 +76,8 @@ export async function POST(request: NextRequest) {
     const plantsCollection = db.collection<Plant>('plants');
     const companiesCollection = db.collection<Company>('companies');
 
-    // Check if company exists (case-insensitive)
-    const company = await companiesCollection.findOne({ 
-      walletAddress: companyAddress.toLowerCase() 
-    });
+    // Check if company exists
+    const company = await companiesCollection.findOne({ walletAddress: companyAddress });
     if (!company) {
       return NextResponse.json(
         { error: 'Company not found' },
@@ -89,11 +85,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for duplicate plant code (excluding soft-deleted plants)
+    // Check for duplicate plant code
     const existingPlant = await plantsCollection.findOne({
       plantCode,
-      companyAddress: companyAddress.toLowerCase(),
-      isActive: { $ne: false }
+      companyAddress
     });
 
     if (existingPlant) {
@@ -107,7 +102,7 @@ export async function POST(request: NextRequest) {
       plantName,
       plantCode,
       description,
-      companyAddress: companyAddress.toLowerCase(),
+      companyAddress,
       location: {
         address: location.address,
         city: location.city,

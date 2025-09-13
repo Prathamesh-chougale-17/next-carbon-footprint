@@ -48,7 +48,6 @@ export interface ProductBatch {
   quantity: number;
   productionDate: Date;
   expiryDate?: Date;
-  batchStatus: 'production' | 'completed' | 'shipped' | 'delivered';
   carbonFootprint: number; // Total carbon footprint for this batch
   manufacturerAddress: string;
   plantId: ObjectId; // Reference to Plant
@@ -61,6 +60,39 @@ export interface ProductBatch {
   updatedAt: Date;
 }
 
+// Partner - Represents a business partner (supplier/customer)
+export interface Partner {
+  _id?: ObjectId;
+  companyAddress: string; // Wallet address of the partner company
+  companyName: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  businessType: 'manufacturer' | 'retailer' | 'logistics' | 'supplier' | 'customer';
+  description?: string;
+  location?: {
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    postalCode: string;
+  };
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Partner Relationship - Bidirectional mapping between partners
+export interface PartnerRelationship {
+  _id?: ObjectId;
+  companyAddress: string; // The company that initiated the relationship
+  partnerAddress: string; // The partner company
+  relationshipType: 'supplier' | 'customer'; // From the perspective of companyAddress
+  status: 'active' | 'inactive' | 'pending';
+  notes?: string;
+  establishedDate: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 // Legacy Product interface for backward compatibility
 export interface Product {

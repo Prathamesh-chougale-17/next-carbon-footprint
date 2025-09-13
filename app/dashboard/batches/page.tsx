@@ -15,14 +15,18 @@ import {
     Factory,
     Hash,
     TrendingUp,
-    AlertCircle,
-    CheckCircle,
-    Clock,
     Plus,
-    Settings
+    Settings,
+    Edit,
+    Trash2
 } from "lucide-react";
 import { ProductBatch, ProductTemplate, Plant } from "@/lib/models";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 // Loading skeleton for the form
 const FormSkeleton = () => (
@@ -53,6 +57,16 @@ export default function BatchesPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [selectedBatch, setSelectedBatch] = useState<ProductBatch | null>(null);
+    const [editData, setEditData] = useState({
+        batchNumber: "",
+        quantity: "",
+        productionDate: "",
+        expiryDate: "",
+        carbonFootprint: "",
+        plantId: ""
+    });
 
     useEffect(() => {
         if (address) {
@@ -118,35 +132,100 @@ export default function BatchesPage() {
         return plant?.plantName || "Unknown Plant";
     };
 
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case "production":
-                return <Clock className="h-4 w-4 text-blue-500" />;
-            case "completed":
-                return <CheckCircle className="h-4 w-4 text-green-500" />;
-            case "shipped":
-                return <Package className="h-4 w-4 text-purple-500" />;
-            case "delivered":
-                return <CheckCircle className="h-4 w-4 text-green-600" />;
-            default:
-                return <AlertCircle className="h-4 w-4 text-gray-500" />;
+    const openEditModal = (batch: ProductBatch) => {
+        setSelectedBatch(batch);
+        setEditData({
+            batchNumber: batch.batchNumber,
+            quantity: batch.quantity.toString(),
+            productionDate: format(new Date(batch.productionDate), "yyyy-MM-dd"),
+            expiryDate: batch.expiryDate ? format(new Date(batch.expiryDate), "yyyy-MM-dd") : "",
+            carbonFootprint: batch.carbonFootprint.toString(),
+            plantId: batch.plantId?.toString() || ""
+        });
+        setShowEditModal(true);
+    };
+
+    const closeEditModal = () => {
+        setShowEditModal(false);
+        setSelectedBatch(null);
+        setEditData({
+            batchNumber: "",
+            quantity: "",
+            productionDate: "",
+            expiryDate: "",
+            carbonFootprint: "",
+            plantId: ""
+        });
+    };
+
+    const handleEditInputChange = (field: string, value: string) => {
+        setEditData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedBatch) return;
+
+        setIsLoading(true);
+        try {
+            const response = await fetch(`/api/product-batches/${selectedBatch._id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    batchNumber: editData.batchNumber,
+                    quantity: parseInt(editData.quantity),
+                    productionDate: editData.productionDate,
+                    expiryDate: editData.expiryDate || null,
+                    carbonFootprint: parseFloat(editData.carbonFootprint),
+                    plantId: editData.plantId
+                }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                toast.success("Batch updated successfully");
+                closeEditModal();
+                fetchBatches(); // Refresh the batches list
+            } else {
+                toast.error(result.error || "Failed to update batch");
+            }
+        } catch (error) {
+            console.error("Error updating batch:", error);
+            toast.error("An error occurred while updating the batch");
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case "production":
-                return "bg-blue-100 text-blue-800";
-            case "completed":
-                return "bg-green-100 text-green-800";
-            case "shipped":
-                return "bg-purple-100 text-purple-800";
-            case "delivered":
-                return "bg-green-100 text-green-800";
-            default:
-                return "bg-gray-100 text-gray-800";
+    const handleDeleteBatch = async (batchId: string) => {
+        setIsLoading(true);
+        try {
+            const response = await fetch(`/api/product-batches/${batchId}`, {
+                method: 'DELETE',
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                toast.success("Batch deleted successfully");
+                fetchBatches(); // Refresh the batches list
+            } else {
+                toast.error(result.error || "Failed to delete batch");
+            }
+        } catch (error) {
+            console.error("Error deleting batch:", error);
+            toast.error("An error occurred while deleting the batch");
+        } finally {
+            setIsLoading(false);
         }
     };
+
 
     const filteredBatches = batches.filter(batch => {
         const matchesSearch = batch.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -230,28 +309,6 @@ export default function BatchesPage() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">In Production</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {batches.filter(b => b.batchStatus === "production").length}
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Completed</CardTitle>
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {batches.filter(b => b.batchStatus === "completed").length}
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Quantity</CardTitle>
                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
@@ -292,12 +349,6 @@ export default function BatchesPage() {
                                             {getTemplateName(batch.templateId)}
                                         </CardDescription>
                                     </div>
-                                    <Badge className={getStatusColor(batch.batchStatus)}>
-                                        <div className="flex items-center gap-1">
-                                            {getStatusIcon(batch.batchStatus)}
-                                            {batch.batchStatus}
-                                        </div>
-                                    </Badge>
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -338,12 +389,163 @@ export default function BatchesPage() {
                                             )}
                                         </div>
                                     )}
+
+                                    {/* Action Buttons */}
+                                    <div className="flex justify-end space-x-2 pt-2 border-t">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => openEditModal(batch)}
+                                            disabled={isLoading}
+                                        >
+                                            <Edit className="h-4 w-4 mr-1" />
+                                            Edit
+                                        </Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={isLoading || !!batch.tokenId}
+                                                >
+                                                    <Trash2 className="h-4 w-4 mr-1" />
+                                                    Delete
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Delete Batch</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Are you sure you want to delete batch "{batch.batchNumber}"?
+                                                        This action cannot be undone.
+                                                        {batch.tokenId && (
+                                                            <span className="block mt-2 text-red-600 font-medium">
+                                                                Note: This batch has minted tokens and cannot be deleted.
+                                                            </span>
+                                                        )}
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    {!batch.tokenId && (
+                                                        <AlertDialogAction
+                                                            onClick={() => handleDeleteBatch(batch._id?.toString() || "")}
+                                                            className="bg-red-600 hover:bg-red-700"
+                                                        >
+                                                            Delete
+                                                        </AlertDialogAction>
+                                                    )}
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
                     ))}
                 </div>
             )}
+
+            {/* Edit Batch Modal */}
+            <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Edit Batch</DialogTitle>
+                        <DialogDescription>
+                            Update the batch information
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleEditSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="editBatchNumber">Batch Number</Label>
+                            <Input
+                                id="editBatchNumber"
+                                value={editData.batchNumber}
+                                onChange={(e) => handleEditInputChange("batchNumber", e.target.value)}
+                                placeholder="Enter batch number"
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="editQuantity">Quantity</Label>
+                            <Input
+                                id="editQuantity"
+                                type="number"
+                                min="1"
+                                value={editData.quantity}
+                                onChange={(e) => handleEditInputChange("quantity", e.target.value)}
+                                placeholder="Enter quantity"
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="editProductionDate">Production Date</Label>
+                            <Input
+                                id="editProductionDate"
+                                type="date"
+                                value={editData.productionDate}
+                                onChange={(e) => handleEditInputChange("productionDate", e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="editExpiryDate">Expiry Date (Optional)</Label>
+                            <Input
+                                id="editExpiryDate"
+                                type="date"
+                                value={editData.expiryDate}
+                                onChange={(e) => handleEditInputChange("expiryDate", e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="editPlant">Plant</Label>
+                            <Select
+                                value={editData.plantId}
+                                onValueChange={(value) => handleEditInputChange("plantId", value)}
+                                required
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select plant" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {plants.map((plant) => (
+                                        <SelectItem key={plant._id?.toString()} value={plant._id?.toString() || ""}>
+                                            {plant.plantName} - {plant.plantCode}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="editCarbonFootprint">Carbon Footprint (kg CO₂)</Label>
+                            <Input
+                                id="editCarbonFootprint"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={editData.carbonFootprint}
+                                onChange={(e) => handleEditInputChange("carbonFootprint", e.target.value)}
+                                placeholder="Enter carbon footprint"
+                                required
+                            />
+                        </div>
+
+                        <div className="flex justify-end space-x-2">
+                            <Button type="button" variant="outline" onClick={closeEditModal}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={isLoading}>
+                                {isLoading ? "Updating..." : "Update Batch"}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

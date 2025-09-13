@@ -8,7 +8,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const manufacturerAddress = searchParams.get('manufacturerAddress');
-    const batchStatus = searchParams.get('batchStatus');
     const templateId = searchParams.get('templateId');
 
     await client.connect();
@@ -21,9 +20,6 @@ export async function GET(request: NextRequest) {
       query.manufacturerAddress = manufacturerAddress;
     }
 
-    if (batchStatus) {
-      query.batchStatus = batchStatus;
-    }
 
     if (templateId) {
       query.templateId = templateId;
@@ -53,7 +49,6 @@ export async function POST(request: NextRequest) {
       templateId,
       quantity,
       productionDate,
-      batchStatus = 'production',
       carbonFootprint,
       manufacturerAddress,
       plantId
@@ -99,7 +94,6 @@ export async function POST(request: NextRequest) {
       templateId,
       quantity: parseInt(quantity),
       productionDate: new Date(productionDate),
-      batchStatus,
       carbonFootprint: carbonFootprint || (template.specifications.carbonFootprintPerUnit * parseInt(quantity)),
       manufacturerAddress,
       plantId: new ObjectId(plantId),
