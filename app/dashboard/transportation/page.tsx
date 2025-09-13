@@ -24,11 +24,19 @@ import {
 import { toast } from "sonner";
 import { Transportation } from "@/lib/models";
 import { useWallet } from "@/hooks/use-wallet";
+import { 
+  PageHeaderSkeleton, 
+  SearchBarSkeleton, 
+  FormSkeleton, 
+  TransportationCardsSkeleton,
+  StatsSummarySkeleton 
+} from "@/components/ui/loading-skeletons";
 
 export default function TransportationPage() {
   const { address } = useWallet();
   const [transportations, setTransportations] = useState<Transportation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
@@ -57,6 +65,8 @@ export default function TransportationPage() {
       }
     } catch (error) {
       console.error('Error fetching transportations:', error);
+    } finally {
+      setIsInitialLoading(false);
     }
   };
 
@@ -153,6 +163,17 @@ export default function TransportationPage() {
     }
   };
 
+  if (isInitialLoading) {
+    return (
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <PageHeaderSkeleton />
+        <SearchBarSkeleton />
+        <TransportationCardsSkeleton />
+        <StatsSummarySkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -186,18 +207,21 @@ export default function TransportationPage() {
 
       {/* Add Transportation Form */}
       {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Truck className="h-5 w-5" />
-              Record Transportation
-            </CardTitle>
-            <CardDescription>
-              Record transportation activities and calculate their carbon footprint.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+        isLoading ? (
+          <FormSkeleton />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Truck className="h-5 w-5" />
+                Record Transportation
+              </CardTitle>
+              <CardDescription>
+                Record transportation activities and calculate their carbon footprint.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="vehicleType">Vehicle Type *</Label>
@@ -345,9 +369,10 @@ export default function TransportationPage() {
                   )}
                 </Button>
               </div>
-            </form>
-          </CardContent>
-        </Card>
+              </form>
+            </CardContent>
+          </Card>
+        )
       )}
 
       {/* Transportation List */}

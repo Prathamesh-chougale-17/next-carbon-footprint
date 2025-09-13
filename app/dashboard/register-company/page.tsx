@@ -12,6 +12,10 @@ import { Building2, Upload, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useWallet } from "@/hooks/use-wallet";
+import { 
+  PageHeaderSkeleton, 
+  FormSkeleton 
+} from "@/components/ui/loading-skeletons";
 
 export default function RegisterCompanyPage() {
   const router = useRouter();
@@ -73,6 +77,17 @@ export default function RegisterCompanyPage() {
       setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <PageHeaderSkeleton />
+        <div className="max-w-2xl mx-auto">
+          <FormSkeleton />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">

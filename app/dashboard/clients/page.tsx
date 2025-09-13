@@ -24,11 +24,19 @@ import {
 import { toast } from "sonner";
 import { Client } from "@/lib/models";
 import { useWallet } from "@/hooks/use-wallet";
+import { 
+  PageHeaderSkeleton, 
+  SearchBarSkeleton, 
+  FormSkeleton, 
+  ClientCardsSkeleton,
+  StatsSummarySkeleton 
+} from "@/components/ui/loading-skeletons";
 
 export default function ClientsPage() {
   const { address } = useWallet();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
@@ -56,6 +64,8 @@ export default function ClientsPage() {
       }
     } catch (error) {
       console.error('Error fetching clients:', error);
+    } finally {
+      setIsInitialLoading(false);
     }
   };
 
@@ -134,6 +144,17 @@ export default function ClientsPage() {
     }
   };
 
+  if (isInitialLoading) {
+    return (
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <PageHeaderSkeleton />
+        <SearchBarSkeleton />
+        <ClientCardsSkeleton />
+        <StatsSummarySkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -167,18 +188,21 @@ export default function ClientsPage() {
 
       {/* Add Client Form */}
       {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5" />
-              Add New Client
-            </CardTitle>
-            <CardDescription>
-              Add a new client to your business network.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+        isLoading ? (
+          <FormSkeleton />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5" />
+                Add New Client
+              </CardTitle>
+              <CardDescription>
+                Add a new client to your business network.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="clientName">Client Name *</Label>
@@ -287,9 +311,10 @@ export default function ClientsPage() {
                   )}
                 </Button>
               </div>
-            </form>
-          </CardContent>
-        </Card>
+              </form>
+            </CardContent>
+          </Card>
+        )
       )}
 
       {/* Clients List */}

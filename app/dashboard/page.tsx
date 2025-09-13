@@ -1,21 +1,34 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Package, 
-  Users, 
-  Truck, 
+import {
+  TrendingDown,
+  Package,
+  Users,
+  Truck,
   Coins,
   Leaf,
   BarChart3,
-  Activity
+  Activity,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  StatsCardsSkeleton,
+  QuickActionsSkeleton,
+  RecentActivitySkeleton,
+  ChartSkeleton,
+} from "@/components/ui/loading-skeletons";
 
 export default function DashboardPage() {
+  // Mock loading state - in real app, this would come from API loading state
+  const isLoading = true; // Set to true to see loading states
+
   // Mock data - in real app, this would come from API
   const stats = {
     totalCarbonFootprint: 1250.5,
@@ -23,7 +36,7 @@ export default function DashboardPage() {
     productsTracked: 45,
     clients: 12,
     transportationTrips: 8,
-    tokensMinted: 23
+    tokensMinted: 23,
   };
 
   const recentActivities = [
@@ -33,7 +46,7 @@ export default function DashboardPage() {
       title: "New product registered",
       description: "Steel Components - 2.5kg CO2/kg",
       time: "2 hours ago",
-      icon: Package
+      icon: Package,
     },
     {
       id: 2,
@@ -41,7 +54,7 @@ export default function DashboardPage() {
       title: "Token minted",
       description: "Carbon credit token #1234",
       time: "4 hours ago",
-      icon: Coins
+      icon: Coins,
     },
     {
       id: 3,
@@ -49,7 +62,7 @@ export default function DashboardPage() {
       title: "Transportation recorded",
       description: "Delivery to Warehouse A - 45kg CO2",
       time: "6 hours ago",
-      icon: Truck
+      icon: Truck,
     },
     {
       id: 4,
@@ -57,8 +70,8 @@ export default function DashboardPage() {
       title: "New client added",
       description: "GreenTech Solutions",
       time: "1 day ago",
-      icon: Users
-    }
+      icon: Users,
+    },
   ];
 
   return (
@@ -76,197 +89,246 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Carbon Footprint</CardTitle>
-            <Leaf className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCarbonFootprint} kg CO₂</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+2.1%</span> from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Carbon Reduction</CardTitle>
-            <TrendingDown className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{Math.abs(stats.carbonReduction)}%</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">-0.3%</span> from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Products Tracked</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.productsTracked}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+3</span> new this month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Clients</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.clients}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+1</span> new this month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Transportation Trips</CardTitle>
-            <Truck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.transportationTrips}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-red-600">+2</span> from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tokens Minted</CardTitle>
-            <Coins className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.tokensMinted}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+5</span> this month
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="hover:shadow-md transition-shadow cursor-pointer">
-          <Link href="/dashboard/products">
+      {isLoading ? (
+        <StatsCardsSkeleton />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Register Product</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Carbon Footprint
+              </CardTitle>
+              <Leaf className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {stats.totalCarbonFootprint} kg CO₂
+              </div>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-green-600">+2.1%</span> from last month
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Carbon Reduction
+              </CardTitle>
+              <TrendingDown className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                {Math.abs(stats.carbonReduction)}%
+              </div>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-green-600">-0.3%</span> from last month
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Products Tracked
+              </CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
+              <div className="text-2xl font-bold">{stats.productsTracked}</div>
               <p className="text-xs text-muted-foreground">
-                Add new products with carbon footprint data
+                <span className="text-green-600">+3</span> new this month
               </p>
             </CardContent>
-          </Link>
-        </Card>
+          </Card>
 
-        <Card className="hover:shadow-md transition-shadow cursor-pointer">
-          <Link href="/dashboard/issue-token">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Mint Token</CardTitle>
-              <Coins className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Create carbon credit tokens
-              </p>
-            </CardContent>
-          </Link>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow cursor-pointer">
-          <Link href="/dashboard/transportation">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Record Transport</CardTitle>
-              <Truck className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Track transportation emissions
-              </p>
-            </CardContent>
-          </Link>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow cursor-pointer">
-          <Link href="/dashboard/clients">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Add Client</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Active Clients
+              </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
+              <div className="text-2xl font-bold">{stats.clients}</div>
               <p className="text-xs text-muted-foreground">
-                Manage business relationships
+                <span className="text-green-600">+1</span> new this month
               </p>
             </CardContent>
-          </Link>
-        </Card>
-      </div>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Transportation Trips
+              </CardTitle>
+              <Truck className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {stats.transportationTrips}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-red-600">+2</span> from last month
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Tokens Minted
+              </CardTitle>
+              <Coins className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.tokensMinted}</div>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-green-600">+5</span> this month
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Quick Actions */}
+      {isLoading ? (
+        <QuickActionsSkeleton />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <Link href="/dashboard/products">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Register Product
+                </CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Add new products with carbon footprint data
+                </p>
+              </CardContent>
+            </Link>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <Link href="/dashboard/issue-token">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Mint Token
+                </CardTitle>
+                <Coins className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Create carbon credit tokens
+                </p>
+              </CardContent>
+            </Link>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <Link href="/dashboard/transportation">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Record Transport
+                </CardTitle>
+                <Truck className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Track transportation emissions
+                </p>
+              </CardContent>
+            </Link>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <Link href="/dashboard/clients">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Add Client
+                </CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Manage business relationships
+                </p>
+              </CardContent>
+            </Link>
+          </Card>
+        </div>
+      )}
 
       {/* Recent Activity */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Recent Activity
-            </CardTitle>
-            <CardDescription>
-              Latest updates from your carbon tracking activities
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-center space-x-4">
-                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                    <activity.icon className="h-4 w-4" />
+        {isLoading ? (
+          <RecentActivitySkeleton />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Recent Activity
+              </CardTitle>
+              <CardDescription>
+                Latest updates from your carbon tracking activities
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentActivities.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-center space-x-4"
+                  >
+                    <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                      <activity.icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm font-medium">{activity.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {activity.description}
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {activity.time}
+                    </Badge>
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">{activity.title}</p>
-                    <p className="text-xs text-muted-foreground">{activity.description}</p>
-                  </div>
-                  <Badge variant="secondary" className="text-xs">
-                    {activity.time}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Carbon Footprint Trend
-            </CardTitle>
-            <CardDescription>
-              Your carbon footprint over the last 6 months
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>Chart will be displayed here</p>
-                <p className="text-xs">Integration with charting library needed</p>
+                ))}
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
+
+        {isLoading ? (
+          <ChartSkeleton />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Carbon Footprint Trend
+              </CardTitle>
+              <CardDescription>
+                Your carbon footprint over the last 6 months
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                <div className="text-center">
+                  <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>Chart will be displayed here</p>
+                  <p className="text-xs">
+                    Integration with charting library needed
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

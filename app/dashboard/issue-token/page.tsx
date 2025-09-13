@@ -20,6 +20,11 @@ import {
 import { toast } from "sonner";
 import { Product, Token } from "@/lib/models";
 import { useWallet } from "@/hooks/use-wallet";
+import { 
+  PageHeaderSkeleton, 
+  FormSkeleton, 
+  ProductCardsSkeleton 
+} from "@/components/ui/loading-skeletons";
 
 export default function IssueTokenPage() {
   const { address } = useWallet();
@@ -27,6 +32,7 @@ export default function IssueTokenPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [mintedToken, setMintedToken] = useState<Token | null>(null);
   const [isMinting, setIsMinting] = useState(false);
 
@@ -47,6 +53,8 @@ export default function IssueTokenPage() {
       }
     } catch (error) {
       console.error('Error fetching products:', error);
+    } finally {
+      setIsInitialLoading(false);
     }
   };
 
@@ -98,6 +106,18 @@ export default function IssueTokenPage() {
   const totalCarbonFootprint = selectedProduct && quantity 
     ? (selectedProduct.carbonFootprint * parseFloat(quantity)).toFixed(2)
     : "0";
+
+  if (isInitialLoading) {
+    return (
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <PageHeaderSkeleton />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <FormSkeleton />
+          <ProductCardsSkeleton />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">

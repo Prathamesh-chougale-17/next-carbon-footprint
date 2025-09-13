@@ -28,6 +28,12 @@ import { toast } from "sonner";
 import { Product } from "@/lib/models";
 import { useWallet } from "@/hooks/use-wallet";
 import { QRCode } from "@/components/ui/kibo-ui/qr-code";
+import { 
+  PageHeaderSkeleton, 
+  SearchBarSkeleton, 
+  FormSkeleton, 
+  ProductCardsSkeleton 
+} from "@/components/ui/loading-skeletons";
 
 interface QRCodeRecord {
   _id?: string;
@@ -45,6 +51,7 @@ export default function QRCodePage() {
   const [qrCodes, setQrCodes] = useState<QRCodeRecord[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedQR, setSelectedQR] = useState<QRCodeRecord | null>(null);
@@ -85,6 +92,8 @@ export default function QRCodePage() {
       }
     } catch (error) {
       console.error('Error fetching products:', error);
+    } finally {
+      setIsInitialLoading(false);
     }
   };
 
@@ -210,6 +219,16 @@ export default function QRCodePage() {
     toast.success("QR Code data copied to clipboard");
   };
 
+  if (isInitialLoading) {
+    return (
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <PageHeaderSkeleton />
+        <SearchBarSkeleton />
+        <ProductCardsSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -243,18 +262,21 @@ export default function QRCodePage() {
 
       {/* Generate QR Code Form */}
       {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <QrCode className="h-5 w-5" />
-              Generate QR Code
-            </CardTitle>
-            <CardDescription>
-              Create QR codes for products, assets, or tokens with embedded blockchain data.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+        isLoading ? (
+          <FormSkeleton />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <QrCode className="h-5 w-5" />
+                Generate QR Code
+              </CardTitle>
+              <CardDescription>
+                Create QR codes for products, assets, or tokens with embedded blockchain data.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="productId">Product *</Label>
@@ -354,9 +376,10 @@ export default function QRCodePage() {
                   )}
                 </Button>
               </div>
-            </form>
-          </CardContent>
-        </Card>
+              </form>
+            </CardContent>
+          </Card>
+        )
       )}
 
       {/* QR Codes List */}

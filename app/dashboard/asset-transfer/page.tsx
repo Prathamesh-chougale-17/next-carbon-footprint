@@ -27,12 +27,20 @@ import {
 import { toast } from "sonner";
 import { AssetTransfer, Product } from "@/lib/models";
 import { useWallet } from "@/hooks/use-wallet";
+import { 
+  PageHeaderSkeleton, 
+  SearchBarSkeleton, 
+  FormSkeleton, 
+  ProductCardsSkeleton,
+  StatsSummarySkeleton 
+} from "@/components/ui/loading-skeletons";
 
 export default function AssetTransferPage() {
   const { address } = useWallet();
   const [transfers, setTransfers] = useState<AssetTransfer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
@@ -74,6 +82,8 @@ export default function AssetTransferPage() {
       }
     } catch (error) {
       console.error('Error fetching products:', error);
+    } finally {
+      setIsInitialLoading(false);
     }
   };
 
@@ -160,6 +170,17 @@ export default function AssetTransferPage() {
     }
   };
 
+  if (isInitialLoading) {
+    return (
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        <PageHeaderSkeleton />
+        <SearchBarSkeleton />
+        <ProductCardsSkeleton />
+        <StatsSummarySkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -193,18 +214,21 @@ export default function AssetTransferPage() {
 
       {/* Add Transfer Form */}
       {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ArrowRightLeft className="h-5 w-5" />
-              Record Asset Transfer
-            </CardTitle>
-            <CardDescription>
-              Record the transfer of assets with carbon emission data.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+        isLoading ? (
+          <FormSkeleton />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ArrowRightLeft className="h-5 w-5" />
+                Record Asset Transfer
+              </CardTitle>
+              <CardDescription>
+                Record the transfer of assets with carbon emission data.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="toAddress">To Address *</Label>
@@ -313,9 +337,10 @@ export default function AssetTransferPage() {
                   )}
                 </Button>
               </div>
-            </form>
-          </CardContent>
-        </Card>
+              </form>
+            </CardContent>
+          </Card>
+        )
       )}
 
       {/* Transfers List */}
