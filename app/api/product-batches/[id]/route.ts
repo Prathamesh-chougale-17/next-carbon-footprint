@@ -6,10 +6,10 @@ import { ObjectId } from 'mongodb';
 // PUT /api/product-batches/[id] - Update batch with token information
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const batchId = params.id;
+    const { id: batchId } = await params;
     const body = await request.json();
     const { tokenId, txHash, blockNumber } = body;
 
@@ -25,9 +25,17 @@ export async function PUT(
     const db = client.db('carbon-footprint');
     const collection = db.collection<ProductBatch>('productBatches');
 
+    // Build query - try ObjectId first, then batchNumber
+    let query;
+    if (ObjectId.isValid(batchId)) {
+      query = { _id: new ObjectId(batchId) };
+    } else {
+      query = { batchNumber: batchId };
+    }
+
     // Update batch with token information
     const result = await collection.updateOne(
-      { _id: new ObjectId(batchId) },
+      query,
       {
         $set: {
           tokenId: parseInt(tokenId),
@@ -68,19 +76,29 @@ export async function PUT(
   }
 }
 
-// GET /api/product-batches/[id] - Get specific batch
+// GET /api/product-batches/[id] - Get specific batch by ObjectId or batchNumber
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const batchId = params.id;
+    const { id: batchId } = await params;
 
     await client.connect();
     const db = client.db('carbon-footprint');
     const collection = db.collection<ProductBatch>('productBatches');
 
-    const batch = await collection.findOne({ _id: new ObjectId(batchId) });
+    let batch;
+
+    // Try to find by ObjectId first (if it's a valid ObjectId)
+    if (ObjectId.isValid(batchId)) {
+      batch = await collection.findOne({ _id: new ObjectId(batchId) });
+    }
+
+    // If not found by ObjectId, try to find by batchNumber
+    if (!batch) {
+      batch = await collection.findOne({ batchNumber: batchId });
+    }
 
     if (!batch) {
       return NextResponse.json(

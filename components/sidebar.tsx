@@ -8,7 +8,8 @@ import {
   LogOut,
   Leaf,
   Building2,
-  Users
+  Users,
+  Wallet
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -37,6 +38,12 @@ const menuItems = [
     url: "/dashboard/batches",
     icon: Factory,
     access: ["Manufacturer"]
+  },
+  {
+    title: "Token Inventory",
+    url: "/dashboard/inventory",
+    icon: Wallet,
+    access: ["Manufacturer", "Retailer", "Logistics"]
   },
   {
     title: "Partners",

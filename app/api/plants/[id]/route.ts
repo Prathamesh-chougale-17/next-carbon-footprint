@@ -137,7 +137,7 @@ export async function DELETE(
         { status: 404 }
       );
     }
-    
+
     // Permanently delete the plant from database
     const result = await collection.deleteOne({ _id: new ObjectId(id) });
 

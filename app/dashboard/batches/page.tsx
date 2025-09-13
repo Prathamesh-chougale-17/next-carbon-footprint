@@ -228,7 +228,7 @@ export default function BatchesPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {batches.reduce((sum, batch) => sum + batch.carbonFootprint, 0).toLocaleString()} kg
+                            {(batches.reduce((sum, batch) => sum + batch.carbonFootprint, 0) / 1000).toFixed(2)} tons
                         </div>
                     </CardContent>
                 </Card>
@@ -301,7 +301,7 @@ export default function BatchesPage() {
                                     </div>
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-muted-foreground">Carbon Footprint:</span>
-                                        <span className="font-medium">{batch.carbonFootprint.toFixed(2)} kg CO₂</span>
+                                        <span className="font-medium">{(batch.carbonFootprint / 1000).toFixed(2)} tons CO₂</span>
                                     </div>
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-muted-foreground">Production Date:</span>

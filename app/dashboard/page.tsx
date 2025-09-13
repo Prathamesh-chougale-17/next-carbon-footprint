@@ -94,7 +94,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {stats.totalCarbonFootprint} kg CO₂
+                {(stats.totalCarbonFootprint / 1000).toFixed(2)} tons CO₂
               </div>
               <p className="text-xs text-muted-foreground">
                 <span className="text-green-600">+2.1%</span> from last month

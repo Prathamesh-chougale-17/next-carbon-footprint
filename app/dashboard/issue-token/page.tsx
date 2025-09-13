@@ -8,10 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Coins, 
-  Package, 
-  Leaf, 
+import {
+  Coins,
+  Package,
+  Leaf,
   ExternalLink,
   CheckCircle,
   Loader2,
@@ -20,10 +20,10 @@ import {
 import { toast } from "sonner";
 import { Product, Token } from "@/lib/models";
 import { useWallet } from "@/hooks/use-wallet";
-import { 
-  PageHeaderSkeleton, 
-  FormSkeleton, 
-  ProductCardsSkeleton 
+import {
+  PageHeaderSkeleton,
+  FormSkeleton,
+  ProductCardsSkeleton
 } from "@/components/ui/loading-skeletons";
 
 export default function IssueTokenPage() {
@@ -42,7 +42,7 @@ export default function IssueTokenPage() {
 
   const fetchProducts = async () => {
     if (!address) return;
-    
+
     try {
       const response = await fetch(`/api/products?companyAddress=${address}`);
       if (response.ok) {
@@ -103,7 +103,7 @@ export default function IssueTokenPage() {
     }
   };
 
-  const totalCarbonFootprint = selectedProduct && quantity 
+  const totalCarbonFootprint = selectedProduct && quantity
     ? (selectedProduct.carbonFootprint * parseFloat(quantity)).toFixed(2)
     : "0";
 
@@ -164,7 +164,7 @@ export default function IssueTokenPage() {
                         <div className="flex items-center justify-between w-full">
                           <span>{product.productName}</span>
                           <Badge variant="outline" className="ml-2">
-                            {product.carbonFootprint} kg CO₂/kg
+                            {product.carbonFootprint} tons CO₂/kg
                           </Badge>
                         </div>
                       </SelectItem>
@@ -199,7 +199,7 @@ export default function IssueTokenPage() {
                         <span className="text-sm font-medium">Carbon Footprint:</span>
                         <div className="flex items-center gap-1">
                           <Leaf className="h-3 w-3 text-green-600" />
-                          <span className="text-sm font-medium">{selectedProduct.carbonFootprint} kg CO₂/kg</span>
+                          <span className="text-sm font-medium">{selectedProduct.carbonFootprint} tons CO₂/kg</span>
                         </div>
                       </div>
                     </div>
@@ -228,7 +228,7 @@ export default function IssueTokenPage() {
                       <div className="flex items-center gap-1">
                         <Leaf className="h-4 w-4 text-green-600" />
                         <span className="text-lg font-bold text-green-700">
-                          {totalCarbonFootprint} kg CO₂
+                          {totalCarbonFootprint} tons CO₂
                         </span>
                       </div>
                     </div>
@@ -236,8 +236,8 @@ export default function IssueTokenPage() {
                 </Card>
               )}
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isMinting || !selectedProduct || !quantity || products.length === 0}
                 className="w-full"
               >
@@ -296,18 +296,18 @@ export default function IssueTokenPage() {
               </div>
 
               <div className="space-y-2 pt-4 border-t">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="w-full"
                   onClick={() => window.open(mintedToken.etherscanLink, '_blank')}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   View on Etherscan
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="w-full"
                   onClick={() => window.open(`https://${mintedToken.cid}.ipfs.nftstorage.link`, '_blank')}
                 >
@@ -346,7 +346,7 @@ export default function IssueTokenPage() {
                           <span>Weight: {product.weight} kg</span>
                           <div className="flex items-center gap-1">
                             <Leaf className="h-3 w-3 text-green-600" />
-                            <span className="font-medium">{product.carbonFootprint} kg CO₂/kg</span>
+                            <span className="font-medium">{product.carbonFootprint} tons CO₂/kg</span>
                           </div>
                         </div>
                       </div>

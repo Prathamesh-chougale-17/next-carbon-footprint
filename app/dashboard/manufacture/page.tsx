@@ -38,12 +38,12 @@ import {
 import { toast } from "sonner";
 import { Product } from "@/lib/models";
 import { useWallet } from "@/hooks/use-wallet";
-import { 
-  PageHeaderSkeleton, 
-  SearchBarSkeleton, 
-  FormSkeleton, 
+import {
+  PageHeaderSkeleton,
+  SearchBarSkeleton,
+  FormSkeleton,
   ProductCardsSkeleton,
-  StatsSummarySkeleton 
+  StatsSummarySkeleton
 } from "@/components/ui/loading-skeletons";
 
 interface ManufacturingProcess {
@@ -318,13 +318,12 @@ export default function ManufacturePage() {
                     {rawMaterials.map((material) => (
                       <div
                         key={material._id?.toString()}
-                        className={`flex items-center space-x-2 p-2 rounded cursor-pointer transition-colors ${
-                          formData.rawMaterialIds.includes(
-                            material._id?.toString() || "",
-                          )
-                            ? "bg-green-100 border border-green-300"
-                            : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
-                        }`}
+                        className={`flex items-center space-x-2 p-2 rounded cursor-pointer transition-colors ${formData.rawMaterialIds.includes(
+                          material._id?.toString() || "",
+                        )
+                          ? "bg-green-100 border border-green-300"
+                          : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
+                          }`}
                         onClick={() =>
                           handleRawMaterialToggle(
                             material._id?.toString() || "",
@@ -336,7 +335,7 @@ export default function ManufacturePage() {
                           checked={formData.rawMaterialIds.includes(
                             material._id?.toString() || "",
                           )}
-                          onChange={() => {}}
+                          onChange={() => { }}
                           className="rounded"
                         />
                         <div className="flex-1">
@@ -344,7 +343,7 @@ export default function ManufacturePage() {
                             {material.productName}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {material.carbonFootprint} kg CO₂/kg
+                            {material.carbonFootprint} tons CO₂/kg
                           </p>
                         </div>
                       </div>
@@ -356,7 +355,7 @@ export default function ManufacturePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="carbonFootprint">
-                    Carbon Footprint (kg CO₂)
+                    Carbon Footprint (tons CO₂)
                   </Label>
                   <Input
                     id="carbonFootprint"
@@ -397,7 +396,7 @@ export default function ManufacturePage() {
                       <div className="flex items-center gap-1">
                         <Leaf className="h-4 w-4 text-green-600" />
                         <span className="text-lg font-bold text-green-700">
-                          {calculateTotalCarbonFootprint().toFixed(2)} kg CO₂
+                          {calculateTotalCarbonFootprint().toFixed(2)} tons CO₂
                         </span>
                       </div>
                     </div>
@@ -475,7 +474,7 @@ export default function ManufacturePage() {
                   <div className="flex items-center gap-1">
                     <Leaf className="h-3 w-3 text-green-600" />
                     <span className="font-medium">
-                      {process.carbonFootprint} kg CO₂
+                      {process.carbonFootprint} tons CO₂
                     </span>
                   </div>
                 </div>
