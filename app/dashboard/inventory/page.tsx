@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
     Package,
     Search,
@@ -34,6 +35,7 @@ import { toast } from "sonner";
 import { NetworkStatus } from "@/components/network-status";
 import { smartContractService } from "@/lib/smart-contract";
 import { format } from "date-fns";
+import { Partner } from "@/lib/models";
 
 // Loading skeleton components
 const PageHeaderSkeleton = () => (
@@ -113,6 +115,7 @@ export default function InventoryPage() {
     const { address } = useWallet();
     const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([]);
     const [databaseBatches, setDatabaseBatches] = useState<DatabaseBatch[]>([]);
+    const [customers, setCustomers] = useState<Partner[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -171,6 +174,24 @@ export default function InventoryPage() {
         }
     };
 
+    // Fetch customers from partners
+    const fetchCustomers = async () => {
+        if (!address) return;
+
+        try {
+            const response = await fetch(`/api/partners?selfAddress=${address}`);
+            if (response.ok) {
+                const partners = await response.json();
+                // Filter only customers (not suppliers)
+                const customersData = partners.filter((partner: Partner) => partner.relationship === "customer" && partner.status === "active");
+                setCustomers(customersData);
+                console.log('Fetched customers:', customersData);
+            }
+        } catch (error) {
+            console.error('Error fetching customers:', error);
+        }
+    };
+
     // Fetch batch details by batch ID
     const fetchBatchDetails = async (batchId: string) => {
         try {
@@ -219,7 +240,8 @@ export default function InventoryPage() {
             setIsInitialLoading(true);
             await Promise.all([
                 fetchTokenBalances(),
-                fetchDatabaseBatches()
+                fetchDatabaseBatches(),
+                fetchCustomers()
             ]);
             setIsInitialLoading(false);
         };
@@ -588,16 +610,60 @@ export default function InventoryPage() {
 
     // Transfer functions
     const handleTransfer = async () => {
-        if (!selectedToken) return;
+        if (!selectedToken || !address) return;
 
         setIsLoading(true);
         try {
+            // Ensure contract is initialized
+            if (!smartContractService.isInitialized()) {
+                await smartContractService.initialize();
+            }
+
+            console.log('Initiating transfer:', {
+                to: transferData.to,
+                tokenId: selectedToken.tokenId,
+                quantity: transferData.quantity,
+                reason: transferData.reason
+            });
+
             const result = await smartContractService.transferTokens(
                 transferData.to,
                 selectedToken.tokenId,
                 parseInt(transferData.quantity),
                 transferData.reason
             );
+
+            console.log('Transfer result:', result);
+
+            // Save transfer record to database
+            try {
+                const transferResponse = await fetch('/api/transfers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        fromAddress: address,
+                        toAddress: transferData.to,
+                        tokenId: selectedToken.tokenId,
+                        quantity: parseInt(transferData.quantity),
+                        reason: transferData.reason,
+                        txHash: result.txHash,
+                        blockNumber: undefined, // Will be updated later if needed
+                        gasUsed: result.gasUsed,
+                        status: 'confirmed'
+                    }),
+                });
+
+                if (!transferResponse.ok) {
+                    console.error('Failed to save transfer record:', await transferResponse.text());
+                } else {
+                    console.log('Transfer record saved successfully');
+                }
+            } catch (dbError) {
+                console.error('Error saving transfer record:', dbError);
+                // Don't fail the entire transfer if DB save fails
+            }
 
             toast.success(`Transfer successful! Transaction: ${result.txHash.slice(0, 10)}...`);
 
@@ -611,7 +677,17 @@ export default function InventoryPage() {
 
         } catch (error: any) {
             console.error('Transfer error:', error);
-            toast.error(error.message || 'Transfer failed');
+
+            // Check if it's a user rejection error
+            if (error.message?.includes('user rejected') || error.code === 4001) {
+                toast.error('Transfer cancelled by user');
+            } else if (error.message?.includes('insufficient funds')) {
+                toast.error('Insufficient funds for gas');
+            } else if (error.message?.includes('network')) {
+                toast.error('Network error. Please check your connection.');
+            } else {
+                toast.error(`Transfer failed: ${error.message || 'Unknown error'}`);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -695,7 +771,7 @@ export default function InventoryPage() {
                         <Package className="h-4 w-4 mr-2" />
                         Debug
                     </Button>
-                    <Button onClick={() => Promise.all([fetchTokenBalances(), fetchDatabaseBatches()])}>
+                    <Button onClick={() => Promise.all([fetchTokenBalances(), fetchDatabaseBatches(), fetchCustomers()])}>
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Refresh
                     </Button>
@@ -809,19 +885,45 @@ export default function InventoryPage() {
                     <DialogHeader>
                         <DialogTitle>Transfer Tokens</DialogTitle>
                         <DialogDescription>
-                            Transfer Token #{selectedToken?.tokenId} to another address
+                            Transfer Token #{selectedToken?.tokenId} to a customer
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="recipient">Recipient Address *</Label>
-                            <Input
-                                id="recipient"
+                            <Label htmlFor="customer">Select Customer *</Label>
+                            <Select
                                 value={transferData.to}
-                                onChange={(e) => setTransferData(prev => ({ ...prev, to: e.target.value }))}
-                                placeholder="0x..."
-                                required
-                            />
+                                onValueChange={(value) => setTransferData(prev => ({ ...prev, to: value }))}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Choose a customer to transfer to" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {customers.length === 0 ? (
+                                        <SelectItem value="no-customers" disabled>
+                                            No customers found. Add customers in Partners page.
+                                        </SelectItem>
+                                    ) : (
+                                        customers.map((customer) => (
+                                            <SelectItem key={customer._id?.toString()} value={customer.companyAddress}>
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">
+                                                        {customer.companyName || 'Unknown Company'}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {customer.companyAddress.slice(0, 6)}...{customer.companyAddress.slice(-4)}
+                                                    </span>
+                                                </div>
+                                            </SelectItem>
+                                        ))
+                                    )}
+                                </SelectContent>
+                            </Select>
+                            {customers.length === 0 && (
+                                <p className="text-xs text-amber-600">
+                                    No customers found. Please add customers in the Partners page first.
+                                </p>
+                            )}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="quantity">Quantity *</Label>
@@ -845,7 +947,7 @@ export default function InventoryPage() {
                                 id="reason"
                                 value={transferData.reason}
                                 onChange={(e) => setTransferData(prev => ({ ...prev, reason: e.target.value }))}
-                                placeholder="e.g., Delivery to customer, Partner transfer"
+                                placeholder="e.g., Product delivery, Customer order fulfillment"
                             />
                         </div>
                     </div>
@@ -855,7 +957,7 @@ export default function InventoryPage() {
                         </Button>
                         <Button
                             onClick={handleTransfer}
-                            disabled={isLoading || !transferData.to || !transferData.quantity || parseInt(transferData.quantity) > (selectedToken?.balance || 0)}
+                            disabled={isLoading || !transferData.to || transferData.to === "no-customers" || !transferData.quantity || parseInt(transferData.quantity) > (selectedToken?.balance || 0) || customers.length === 0}
                         >
                             {isLoading ? (
                                 <>

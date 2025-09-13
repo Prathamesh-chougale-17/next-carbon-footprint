@@ -253,6 +253,41 @@ export const CONTRACT_CONFIG = {
       ],
       "stateMutability": "view",
       "type": "function"
+    },
+
+    // transferToPartner function
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "quantity",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "reason",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "metadata",
+          "type": "string"
+        }
+      ],
+      "name": "transferToPartner",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     }
   ] as const,
 } as const;

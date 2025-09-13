@@ -141,8 +141,7 @@ export default function PartnersPage() {
     // Filter partners based on search term
     const filteredPartners = partners.filter(partner =>
         partner.companyAddress.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        partner.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        partner.contactEmail?.toLowerCase().includes(searchTerm.toLowerCase())
+        partner.companyName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // Group partners by relationship type
@@ -516,7 +515,7 @@ export default function PartnersPage() {
                 <div className="relative flex-1">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search partners by address, name, or email..."
+                        placeholder="Search partners by address or name..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-8"

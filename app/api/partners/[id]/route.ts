@@ -43,7 +43,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Invalid partner ID" }, { status: 400 });
     }
 
-    const { companyName, contactEmail, contactPhone, notes, status } = body;
+
+    const { companyName, status } = body;
 
     // Only allow updating specific fields
     const updateData: any = {
@@ -51,9 +52,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     };
 
     if (companyName !== undefined) updateData.companyName = companyName;
-    if (contactEmail !== undefined) updateData.contactEmail = contactEmail;
-    if (contactPhone !== undefined) updateData.contactPhone = contactPhone;
-    if (notes !== undefined) updateData.notes = notes;
     if (status !== undefined) updateData.status = status;
 
     const result = await collection.findOneAndUpdate(

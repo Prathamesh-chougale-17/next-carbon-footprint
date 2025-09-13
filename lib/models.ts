@@ -67,9 +67,6 @@ export interface Partner {
   companyAddress: string; // Partner company address
   relationship: 'supplier' | 'customer'; // From your perspective
   companyName?: string; // Optional: partner company name
-  contactEmail?: string; // Optional: partner contact info
-  contactPhone?: string;
-  notes?: string;
   status: 'active' | 'inactive';
   createdAt: Date;
   updatedAt: Date;
@@ -199,6 +196,22 @@ export interface Plant {
     };
   };
   isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Token Transfer Record - Track blockchain token transfers
+export interface TokenTransfer {
+  _id?: ObjectId;
+  fromAddress: string; // Sender's wallet address
+  toAddress: string; // Recipient's wallet address
+  tokenId: number; // ERC-1155 token ID
+  quantity: number; // Amount transferred
+  reason?: string; // Transfer reason/description
+  txHash: string; // Blockchain transaction hash
+  blockNumber?: number; // Block number where transaction was mined
+  gasUsed?: string; // Gas used for the transaction
+  status: 'pending' | 'confirmed' | 'failed'; // Transfer status
   createdAt: Date;
   updatedAt: Date;
 }

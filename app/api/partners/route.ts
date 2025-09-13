@@ -47,10 +47,7 @@ export async function POST(request: NextRequest) {
       selfAddress,
       companyAddress,
       relationship,
-      companyName,
-      contactEmail,
-      contactPhone,
-      notes
+      companyName
     } = body;
 
     // Validation
@@ -88,6 +85,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Fetch partner's company name from companies collection
+    const companiesCollection = db.collection('companies');
+    const partnerCompany = await companiesCollection.findOne({
+      walletAddress: companyAddress.toLowerCase()
+    });
+
+    // Also fetch your company name for the reverse entry
+    const yourCompany = await companiesCollection.findOne({
+      walletAddress: selfAddress.toLowerCase()
+    });
+
     // Create two entries for bidirectional relationship
     const now = new Date();
 
@@ -96,10 +104,7 @@ export async function POST(request: NextRequest) {
       selfAddress: selfAddress.toLowerCase(),
       companyAddress: companyAddress.toLowerCase(),
       relationship: relationship,
-      companyName,
-      contactEmail,
-      contactPhone,
-      notes,
+      companyName: companyName || partnerCompany?.companyName,
       status: "active",
       createdAt: now,
       updatedAt: now
@@ -110,10 +115,7 @@ export async function POST(request: NextRequest) {
       selfAddress: companyAddress.toLowerCase(),
       companyAddress: selfAddress.toLowerCase(),
       relationship: relationship === "supplier" ? "customer" : "supplier",
-      companyName: undefined, // Partner will fill their own company name
-      contactEmail: undefined,
-      contactPhone: undefined,
-      notes: undefined,
+      companyName: yourCompany?.companyName || undefined, // Partner sees YOUR company name
       status: "active",
       createdAt: now,
       updatedAt: now

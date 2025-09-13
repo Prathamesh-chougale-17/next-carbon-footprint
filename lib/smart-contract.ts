@@ -10,6 +10,11 @@ export class SmartContractService {
   private provider: ethers.BrowserProvider | null = null;
   private signer: ethers.JsonRpcSigner | null = null;
 
+  // Check if the service is initialized
+  isInitialized(): boolean {
+    return !!(this.contract && this.provider && this.signer);
+  }
+
   // Initialize the contract connection
   async initialize() {
     if (!CONTRACT_HELPERS.isMetaMaskAvailable()) {
@@ -359,12 +364,21 @@ export class SmartContractService {
     txHash: string;
     gasUsed: string;
   }> {
+    // Ensure contract is initialized
+    if (!this.contract || !this.provider || !this.signer) {
+      console.log('Contract not initialized, initializing now...');
+      await this.initialize();
+    }
+
     if (!this.contract) {
-      throw new Error('Contract not initialized. Call initialize() first.');
+      throw new Error('Failed to initialize contract. Please check your wallet connection.');
     }
 
     try {
       console.log('Transferring tokens:', { to, tokenId, quantity, reason });
+      console.log('Contract instance:', !!this.contract);
+      console.log('Provider instance:', !!this.provider);
+      console.log('Signer instance:', !!this.signer);
 
       // Validate inputs
       if (!to || to === ethers.ZeroAddress) {
@@ -387,6 +401,11 @@ export class SmartContractService {
       }
 
       // Estimate gas
+      console.log('Estimating gas for transfer...');
+      if (!this.contract.transferToPartner) {
+        throw new Error('transferToPartner method not found on contract');
+      }
+
       const gasEstimate = await this.contract.transferToPartner.estimateGas(
         to,
         tokenId,
@@ -394,6 +413,7 @@ export class SmartContractService {
         reason,
         '' // metadata
       );
+      console.log('Gas estimate:', gasEstimate.toString());
 
       // Execute transfer
       const tx = await this.contract.transferToPartner(
