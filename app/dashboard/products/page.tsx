@@ -67,7 +67,7 @@ import {
 export default function ProductTemplatesPage() {
   const { address } = useWallet();
   const { isConnected, isCorrectNetwork, switchToCorrectNetwork } = useSmartContract();
-  const { mintBatch, isLoading: isMinting, isConfirmed, error: mintError, tokenId } = useMintBatch();
+  const { mintBatch, isLoading: isMinting, isConfirmed, error: mintError, tokenId, hash: mintHash } = useMintBatch();
   const [templates, setTemplates] = useState<ProductTemplate[]>([]);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -469,7 +469,7 @@ export default function ProductTemplatesPage() {
               },
               body: JSON.stringify({
                 tokenId: tokenId,
-                txHash: '', // Will be filled by the hook
+                txHash: mintHash || '', // Use the transaction hash from wagmi
                 blockNumber: undefined // Will be filled later
               }),
             });

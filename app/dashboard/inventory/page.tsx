@@ -117,7 +117,7 @@ export default function InventoryPage() {
     const { address } = useWallet();
     const { isConnected, isCorrectNetwork, switchToCorrectNetwork } = useSmartContract();
     const { balances: tokenBalances, isLoading: isLoadingBalances, error: balancesError } = useAllUserTokenBalances(address || "");
-    const { transferTokens, isLoading: isTransferring, error: transferError } = useTransferTokens();
+    const { transferTokens, isLoading: isTransferring, error: transferError, hash: transferHash, isConfirmed: isTransferConfirmed } = useTransferTokens();
     const { currentTokenId, isLoading: isLoadingTokenId } = useCurrentTokenId();
     const [databaseBatches, setDatabaseBatches] = useState<DatabaseBatch[]>([]);
     const [customers, setCustomers] = useState<Partner[]>([]);
@@ -232,6 +232,44 @@ export default function InventoryPage() {
             setIsInitialLoading(false);
         }
     }, [isLoadingBalances, isLoadingTokenId]);
+
+    // Save transfer record when transaction is confirmed
+    useEffect(() => {
+        if (isTransferConfirmed && transferHash && selectedToken) {
+            const saveTransferRecord = async () => {
+                try {
+                    const transferResponse = await fetch('/api/transfers', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            fromAddress: address,
+                            toAddress: transferData.to,
+                            tokenId: selectedToken.tokenId,
+                            quantity: parseInt(transferData.quantity,10),
+                            reason: transferData.reason,
+                            txHash: transferHash,
+                            blockNumber: undefined, // Could be extracted from receipt if needed
+                            gasUsed: '0', // Could be extracted from receipt if needed
+                            status: 'confirmed'
+                        }),
+                    });
+
+                    if (!transferResponse.ok) {
+                        console.error('Failed to save transfer record:', await transferResponse.text());
+                    } else {
+                        console.log('Transfer record saved successfully');
+                        toast.success('Transfer confirmed and recorded!');
+                    }
+                } catch (dbError) {
+                    console.error('Error saving transfer record:', dbError);
+                }
+            };
+
+            saveTransferRecord();
+        }
+    }, [isTransferConfirmed, transferHash, selectedToken, address, transferData]);
 
     // Helper functions
     const getDatabaseBatch = (tokenId: number): DatabaseBatch | undefined => {
@@ -614,37 +652,12 @@ export default function InventoryPage() {
                 transferData.reason
             );
 
-            // Save transfer record to database
-            try {
-                const transferResponse = await fetch('/api/transfers', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        fromAddress: address,
-                        toAddress: transferData.to,
-                        tokenId: selectedToken.tokenId,
-                        quantity: parseInt(transferData.quantity),
-                        reason: transferData.reason,
-                        txHash: '', // Will be filled by wagmi hook
-                        blockNumber: undefined, // Will be updated later if needed
-                        gasUsed: '', // Will be filled by wagmi hook
-                        status: 'confirmed'
-                    }),
-                });
+            // The transferTokens function will throw an error if the transaction fails
+            // If we reach here, the transaction was submitted successfully
+            toast.success('Transfer submitted! Waiting for confirmation...');
 
-                if (!transferResponse.ok) {
-                    console.error('Failed to save transfer record:', await transferResponse.text());
-                } else {
-                    console.log('Transfer record saved successfully');
-                }
-            } catch (dbError) {
-                console.error('Error saving transfer record:', dbError);
-                // Don't fail the entire transfer if DB save fails
-            }
-
-            toast.success('Transfer successful!');
+            // Note: We'll save the transfer record when the transaction is confirmed
+            // For now, we'll just show success and let the user know it's pending
 
             // Close modal and reset form
             setShowTransferModal(false);
