@@ -16,17 +16,18 @@ import {
   Globe,
   Zap
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen">
       {/* Navigation */}
-      <nav className="border-b bg-primary/80 backdrop-blur-sm sticky top-0 z-50">
+      <nav className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-              <Leaf className="h-8 w-8 text-green-600" />
-              <span className="text-xl font-bold text-gray-900">CarbonTrack</span>
+              <Leaf className="h-8 w-8 text-green-600 dark:text-green-400" />
+              <span className="text-xl font-bold text-foreground">CarbonTrack</span>
             </div>
             <div className="flex items-center space-x-4">
               <Link href="/dashboard">
@@ -39,6 +40,7 @@ export default function LandingPage() {
                   Get Started
                 </Button>
               </Link>
+              <ThemeToggle />
             </div>
           </div>
         </div>
@@ -47,17 +49,17 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
-          <Badge variant="secondary" className="mb-4 bg-green-100 text-green-800">
+          <Badge variant="secondary" className="mb-4 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
             <Globe className="h-4 w-4 mr-1" />
             Blockchain-Powered Carbon Tracking
           </Badge>
-          <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 mb-6">
+          <h1 className="text-4xl sm:text-6xl font-bold text-foreground mb-6">
             Track Your Carbon
-            <span className="text-green-600"> Footprint</span>
+            <span className="text-green-600 dark:text-green-400"> Footprint</span>
             <br />
             with Transparency
           </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
             A comprehensive platform for companies to register, track, and manage their carbon emissions 
             using blockchain technology. Ensure transparency and accountability in your sustainability journey.
           </p>
@@ -76,13 +78,13 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
               Everything You Need for Carbon Management
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               From company registration to token minting, we provide all the tools 
               you need to manage your carbon footprint effectively.
             </p>
@@ -91,8 +93,8 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                  <Factory className="h-6 w-6 text-green-600" />
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mb-4">
+                  <Factory className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
                 <CardTitle>Company Registration</CardTitle>
                 <CardDescription>
@@ -103,8 +105,8 @@ export default function LandingPage() {
 
             <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                  <BarChart3 className="h-6 w-6 text-blue-600" />
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-4">
+                  <BarChart3 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <CardTitle>Product Tracking</CardTitle>
                 <CardDescription>
@@ -115,8 +117,8 @@ export default function LandingPage() {
 
             <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                  <Zap className="h-6 w-6 text-purple-600" />
+                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mb-4">
+                  <Zap className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
                 <CardTitle>Token Minting</CardTitle>
                 <CardDescription>
@@ -127,8 +129,8 @@ export default function LandingPage() {
 
             <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-                  <Truck className="h-6 w-6 text-orange-600" />
+                <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center mb-4">
+                  <Truck className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                 </div>
                 <CardTitle>Transportation Tracking</CardTitle>
                 <CardDescription>
@@ -139,8 +141,8 @@ export default function LandingPage() {
 
             <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
-                  <Shield className="h-6 w-6 text-red-600" />
+                <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center mb-4">
+                  <Shield className="h-6 w-6 text-red-600 dark:text-red-400" />
                 </div>
                 <CardTitle>Asset Transfer</CardTitle>
                 <CardDescription>
@@ -151,8 +153,8 @@ export default function LandingPage() {
 
             <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
-                <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
-                  <Users className="h-6 w-6 text-indigo-600" />
+                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center mb-4">
+                  <Users className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <CardTitle>Client Management</CardTitle>
                 <CardDescription>
@@ -165,12 +167,12 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-green-600">
+      <section className="py-20 bg-green-600 dark:bg-green-700">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
             Ready to Start Your Carbon Journey?
           </h2>
-          <p className="text-xl text-green-100 mb-8">
+          <p className="text-xl text-green-100 dark:text-green-200 mb-8">
             Join thousands of companies already tracking their carbon footprint with transparency and accountability.
           </p>
           <Link href="/dashboard">
@@ -183,17 +185,17 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-muted text-muted-foreground py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <Leaf className="h-6 w-6 text-green-400" />
-              <span className="text-lg font-bold">CarbonTrack</span>
+              <Leaf className="h-6 w-6 text-green-600 dark:text-green-400" />
+              <span className="text-lg font-bold text-foreground">CarbonTrack</span>
             </div>
-            <p className="text-gray-400 mb-4">
+            <p className="text-muted-foreground mb-4">
               Blockchain-powered carbon footprint tracking for sustainable businesses.
             </p>
-            <p className="text-gray-500">&copy; 2024 CarbonTrack. All rights reserved.</p>
+            <p className="text-muted-foreground/70">&copy; 2024 CarbonTrack. All rights reserved.</p>
           </div>
         </div>
       </footer>
