@@ -1,15 +1,15 @@
 "use client";
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
-import { 
-  LayoutDashboard, 
-  Package, 
-  Users, 
-  Truck, 
-  Coins, 
-  ArrowRightLeft, 
-  Factory, 
-  QrCode, 
+import {
+  LayoutDashboard,
+  Package,
+  Users,
+  Truck,
+  Coins,
+  ArrowRightLeft,
+  Factory,
+  QrCode,
   LogOut,
   Leaf,
   Building2
@@ -22,12 +22,6 @@ const menuItems = [
     title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
-    access: ["Manufacturer", "OEM", "Logistics"]
-  },
-  {
-    title: "Register Company",
-    url: "/dashboard/register-company",
-    icon: Building2,
     access: ["Manufacturer", "OEM", "Logistics"]
   },
   {
@@ -85,7 +79,7 @@ export function AppSidebar() {
           <span className="font-semibold">CarbonTrack</span>
         </div>
       </SidebarHeader>
-      
+
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
@@ -93,8 +87,8 @@ export function AppSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
+                  <SidebarMenuButton
+                    asChild
                     isActive={pathname === item.url}
                   >
                     <Link href={item.url}>
@@ -108,7 +102,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      
+
       <SidebarFooter className="border-t">
         <SidebarMenu>
           <SidebarMenuItem>

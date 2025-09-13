@@ -2,14 +2,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Leaf, 
-  Shield, 
-  TrendingUp, 
-  Users, 
-  Truck, 
-  Factory, 
-  Store, 
+import {
+  Leaf,
+  Shield,
+  TrendingUp,
+  Users,
+  Truck,
+  Factory,
+  Store,
   BarChart3,
   ArrowRight,
   CheckCircle,
@@ -30,12 +30,12 @@ export default function LandingPage() {
               <span className="text-xl font-bold text-foreground">CarbonTrack</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/dashboard">
+              <Link href="/login">
                 <Button variant="outline" size="sm">
-                  Dashboard
+                  Login
                 </Button>
               </Link>
-              <Link href="/dashboard">
+              <Link href="/login">
                 <Button size="sm" className="bg-green-600 hover:bg-green-700">
                   Get Started
                 </Button>
@@ -60,11 +60,11 @@ export default function LandingPage() {
             with Transparency
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            A comprehensive platform for companies to register, track, and manage their carbon emissions 
+            A comprehensive platform for companies to register, track, and manage their carbon emissions
             using blockchain technology. Ensure transparency and accountability in your sustainability journey.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/dashboard">
+            <Link href="/login">
               <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white px-8 py-3">
                 Start Tracking
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -85,7 +85,7 @@ export default function LandingPage() {
               Everything You Need for Carbon Management
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              From company registration to token minting, we provide all the tools 
+              From company registration to token minting, we provide all the tools
               you need to manage your carbon footprint effectively.
             </p>
           </div>
@@ -98,7 +98,7 @@ export default function LandingPage() {
                 </div>
                 <CardTitle>Company Registration</CardTitle>
                 <CardDescription>
-                  Register your company as a Manufacturer, Retailer, or Logistics provider with complete profile management.
+                  Register your company as a Manufacturer, OEM, or Logistics provider with complete profile management.
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -175,7 +175,7 @@ export default function LandingPage() {
           <p className="text-xl text-green-100 dark:text-green-200 mb-8">
             Join thousands of companies already tracking their carbon footprint with transparency and accountability.
           </p>
-          <Link href="/dashboard">
+          <Link href="/login">
             <Button size="lg" variant="secondary" className="px-8 py-3">
               Get Started Today
               <ArrowRight className="ml-2 h-5 w-5" />

@@ -51,7 +51,6 @@ export default function ProductsPage() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isCompanyRegistered, setIsCompanyRegistered] = useState(true);
   const [formData, setFormData] = useState({
     productName: "",
     description: "",
@@ -74,10 +73,6 @@ export default function ProductsPage() {
       if (response.ok) {
         const data = await response.json();
         setProducts(data);
-        setIsCompanyRegistered(true);
-      } else if (response.status === 400) {
-        // Company might not be registered
-        setIsCompanyRegistered(false);
       }
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -129,13 +124,7 @@ export default function ProductsPage() {
         });
         fetchProducts();
       } else {
-        if (result.error?.includes("Company not registered")) {
-          toast.error(
-            "Please register your company first before adding products",
-          );
-        } else {
-          toast.error(result.error || "Failed to register product");
-        }
+        toast.error(result.error || "Failed to register product");
       }
     } catch (error) {
       console.error("Error registering product:", error);
@@ -171,10 +160,7 @@ export default function ProductsPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button
-            onClick={() => setShowForm(!showForm)}
-            disabled={!isCompanyRegistered}
-          >
+          <Button onClick={() => setShowForm(!showForm)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Product
           </Button>
@@ -195,166 +181,140 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Company Registration Notice */}
-      {!isCompanyRegistered && (
-        <Card className="border-orange-200 bg-orange-50 dark:bg-orange-900/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center space-x-3">
-              <Factory className="h-8 w-8 text-orange-600" />
-              <div>
-                <h3 className="font-semibold text-orange-800 dark:text-orange-200">
-                  Company Registration Required
-                </h3>
-                <p className="text-sm text-orange-700 dark:text-orange-300">
-                  You need to register your company before you can add products.
-                  <Link
-                    href="/dashboard/register-company"
-                    className="underline ml-1"
-                  >
-                    Register your company now
-                  </Link>
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Add Product Form */}
-      {showForm &&
-        isCompanyRegistered &&
-        (isLoading ? (
-          <FormSkeleton />
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Register New Product
-              </CardTitle>
-              <CardDescription>
-                Add a new product with its carbon footprint data.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="productName">Product Name *</Label>
-                    <Input
-                      id="productName"
-                      value={formData.productName}
-                      onChange={(e) =>
-                        handleInputChange("productName", e.target.value)
-                      }
-                      placeholder="Enter product name"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="weight">Weight (kg) *</Label>
-                    <Input
-                      id="weight"
-                      type="number"
-                      step="0.01"
-                      value={formData.weight}
-                      onChange={(e) =>
-                        handleInputChange("weight", e.target.value)
-                      }
-                      placeholder="Enter weight in kg"
-                      required
-                    />
-                  </div>
-                </div>
-
+      {showForm && (isLoading ? (
+        <FormSkeleton />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Register New Product
+            </CardTitle>
+            <CardDescription>
+              Add a new product with its carbon footprint data.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description *</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
+                  <Label htmlFor="productName">Product Name *</Label>
+                  <Input
+                    id="productName"
+                    value={formData.productName}
                     onChange={(e) =>
-                      handleInputChange("description", e.target.value)
+                      handleInputChange("productName", e.target.value)
                     }
-                    placeholder="Enter product description"
+                    placeholder="Enter product name"
                     required
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="carbonFootprint">
-                      Carbon Footprint (kg CO₂/kg) *
-                    </Label>
-                    <Input
-                      id="carbonFootprint"
-                      type="number"
-                      step="0.01"
-                      value={formData.carbonFootprint}
-                      onChange={(e) =>
-                        handleInputChange("carbonFootprint", e.target.value)
-                      }
-                      placeholder="Enter carbon footprint"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="manufacturingAddress">
-                      Manufacturing Address *
-                    </Label>
-                    <Input
-                      id="manufacturingAddress"
-                      value={formData.manufacturingAddress}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "manufacturingAddress",
-                          e.target.value,
-                        )
-                      }
-                      placeholder="Enter manufacturing address"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isRawMaterial"
-                    checked={formData.isRawMaterial}
-                    onCheckedChange={(checked) =>
-                      handleInputChange("isRawMaterial", checked as boolean)
+                <div className="space-y-2">
+                  <Label htmlFor="weight">Weight (kg) *</Label>
+                  <Input
+                    id="weight"
+                    type="number"
+                    step="0.01"
+                    value={formData.weight}
+                    onChange={(e) =>
+                      handleInputChange("weight", e.target.value)
                     }
+                    placeholder="Enter weight in kg"
+                    required
                   />
-                  <Label htmlFor="isRawMaterial">Is Raw Material</Label>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description *</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) =>
+                    handleInputChange("description", e.target.value)
+                  }
+                  placeholder="Enter product description"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="carbonFootprint">
+                    Carbon Footprint (kg CO₂/kg) *
+                  </Label>
+                  <Input
+                    id="carbonFootprint"
+                    type="number"
+                    step="0.01"
+                    value={formData.carbonFootprint}
+                    onChange={(e) =>
+                      handleInputChange("carbonFootprint", e.target.value)
+                    }
+                    placeholder="Enter carbon footprint"
+                    required
+                  />
                 </div>
 
-                <div className="flex items-center justify-between pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowForm(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                        Registering...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Register Product
-                      </>
-                    )}
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="manufacturingAddress">
+                    Manufacturing Address *
+                  </Label>
+                  <Input
+                    id="manufacturingAddress"
+                    value={formData.manufacturingAddress}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "manufacturingAddress",
+                        e.target.value,
+                      )
+                    }
+                    placeholder="Enter manufacturing address"
+                    required
+                  />
                 </div>
-              </form>
-            </CardContent>
-          </Card>
-        ))}
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isRawMaterial"
+                  checked={formData.isRawMaterial}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("isRawMaterial", checked as boolean)
+                  }
+                />
+                <Label htmlFor="isRawMaterial">Is Raw Material</Label>
+              </div>
+
+              <div className="flex items-center justify-between pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowForm(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      Registering...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Register Product
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ))}
 
       {/* Products List */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -425,7 +385,7 @@ export default function ProductsPage() {
         ))}
       </div>
 
-      {filteredProducts.length === 0 && isCompanyRegistered && (
+      {filteredProducts.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
