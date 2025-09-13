@@ -96,3 +96,27 @@ export interface Material {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface QRCodeRecord {
+  _id?: ObjectId;
+  productId: string;
+  productName: string;
+  qrData: string;
+  qrType: 'product' | 'asset' | 'token';
+  companyAddress: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ManufacturingProcess {
+  _id?: ObjectId;
+  processName: string;
+  rawMaterialIds: string[];
+  outputProductId: string;
+  quantity: number;
+  carbonFootprint: number;
+  manufacturingAddress: string;
+  companyAddress: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
