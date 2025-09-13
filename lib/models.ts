@@ -51,13 +51,7 @@ export interface ProductBatch {
   batchStatus: 'production' | 'completed' | 'shipped' | 'delivered';
   carbonFootprint: number; // Total carbon footprint for this batch
   manufacturerAddress: string;
-  manufacturingLocation: string;
-  qualityControl: {
-    passed: boolean;
-    notes?: string;
-    inspectorName?: string;
-    inspectionDate?: Date;
-  };
+  plantId: ObjectId; // Reference to Plant
   // ERC-1155 Token details
   tokenId?: number;
   tokenContractAddress?: string;
@@ -67,30 +61,6 @@ export interface ProductBatch {
   updatedAt: Date;
 }
 
-// Token Transfer - Movement of tokens in supply chain
-export interface TokenTransfer {
-  _id?: ObjectId;
-  tokenId: number;
-  batchId: string; // Reference to ProductBatch
-  fromAddress: string;
-  toAddress: string;
-  quantity: number;
-  transferType: 'manufacturing' | 'logistics' | 'retail' | 'consumer';
-  transferReason: string;
-  carbonFootprint: number;
-  // Blockchain details
-  txHash: string;
-  blockNumber: number;
-  gasUsed?: number;
-  // Supply chain details
-  fromLocation: string;
-  toLocation: string;
-  transportMethod?: string;
-  estimatedDelivery?: Date;
-  actualDelivery?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 // Legacy Product interface for backward compatibility
 export interface Product {
@@ -193,6 +163,29 @@ export interface ManufacturingProcess {
   carbonFootprint: number;
   manufacturingAddress: string;
   companyAddress: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Plant Registration - Manufacturing facility location metadata
+export interface Plant {
+  _id?: ObjectId;
+  plantName: string;
+  plantCode: string; // Unique identifier for the plant
+  description: string;
+  companyAddress: string; // Reference to Company
+  location: {
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    postalCode: string;
+    coordinates: {
+      latitude: number;
+      longitude: number;
+    };
+  };
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -11,13 +11,11 @@ import {
   TrendingDown,
   Package,
   Users,
-  Truck,
   Coins,
   Leaf,
   BarChart3,
   Activity,
   Factory,
-  ArrowRightLeft,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -65,7 +63,7 @@ export default function DashboardPage() {
       title: "Transportation recorded",
       description: "Delivery to Warehouse A - 45kg CO2",
       time: "6 hours ago",
-      icon: Truck,
+      icon: Package,
     },
     {
       id: 4,
@@ -180,7 +178,7 @@ export default function DashboardPage() {
               <CardTitle className="text-sm font-medium">
                 Transportation Trips
               </CardTitle>
-              <Truck className="h-4 w-4 text-muted-foreground" />
+              <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -213,7 +211,7 @@ export default function DashboardPage() {
       {isLoading ? (
         <QuickActionsSkeleton />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <Link href="/dashboard/products">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -246,37 +244,6 @@ export default function DashboardPage() {
             </Link>
           </Card>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <Link href="/dashboard/transfers">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Transfer Tokens
-                </CardTitle>
-                <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Transfer tokens to next in supply chain
-                </p>
-              </CardContent>
-            </Link>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <Link href="/dashboard/transportation">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Record Transport
-                </CardTitle>
-                <Truck className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Track transportation emissions
-                </p>
-              </CardContent>
-            </Link>
-          </Card>
 
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <Link href="/dashboard/clients">

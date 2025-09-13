@@ -5,11 +5,7 @@ import {
   LayoutDashboard,
   Package,
   Users,
-  Truck,
-  Coins,
-  ArrowRightLeft,
   Factory,
-  QrCode,
   LogOut,
   Leaf,
   Building2
@@ -25,39 +21,27 @@ const menuItems = [
     access: ["Manufacturer", "Retailer", "Logistics"]
   },
   {
+    title: "Plant Registration",
+    url: "/dashboard/plants",
+    icon: Building2,
+    access: ["Manufacturer"]
+  },
+  {
     title: "Product Templates",
     url: "/dashboard/products",
     icon: Package,
     access: ["Manufacturer"]
   },
   {
-    title: "Product Batches",
+    title: "Batches",
     url: "/dashboard/batches",
     icon: Factory,
     access: ["Manufacturer"]
   },
   {
-    title: "Token Transfers",
-    url: "/dashboard/transfers",
-    icon: ArrowRightLeft,
-    access: ["Manufacturer", "Retailer", "Logistics"]
-  },
-  {
     title: "Clients",
     url: "/dashboard/clients",
     icon: Users,
-    access: ["Manufacturer", "Retailer", "Logistics"]
-  },
-  {
-    title: "Transportation",
-    url: "/dashboard/transportation",
-    icon: Truck,
-    access: ["Logistics"]
-  },
-  {
-    title: "QR Code",
-    url: "/dashboard/qr-code",
-    icon: QrCode,
     access: ["Manufacturer", "Retailer", "Logistics"]
   },
 ];

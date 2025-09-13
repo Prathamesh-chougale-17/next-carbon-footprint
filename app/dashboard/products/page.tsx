@@ -24,6 +24,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Package,
   Plus,
   Search,
@@ -35,7 +43,7 @@ import {
   Settings,
 } from "lucide-react";
 import { toast } from "sonner";
-import { ProductTemplate } from "@/lib/models";
+import { ProductTemplate, Plant } from "@/lib/models";
 import { useWallet } from "@/hooks/use-wallet";
 import {
   PageHeaderSkeleton,
@@ -48,10 +56,19 @@ import {
 export default function ProductTemplatesPage() {
   const { address } = useWallet();
   const [templates, setTemplates] = useState<ProductTemplate[]>([]);
+  const [plants, setPlants] = useState<Plant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isLoadingPlants, setIsLoadingPlants] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<ProductTemplate | null>(null);
+  const [batchData, setBatchData] = useState({
+    batchNumber: "",
+    quantity: "",
+    plantId: ""
+  });
   const [formData, setFormData] = useState({
     templateName: "",
     description: "",
@@ -68,6 +85,7 @@ export default function ProductTemplatesPage() {
 
   useEffect(() => {
     fetchTemplates();
+    fetchPlants();
   }, [address]);
 
   const fetchTemplates = async () => {
@@ -86,11 +104,69 @@ export default function ProductTemplatesPage() {
     }
   };
 
+  const fetchPlants = async () => {
+    if (!address) return;
+
+    setIsLoadingPlants(true);
+    try {
+      console.log("Fetching plants for address:", address);
+      const response = await fetch(`/api/plants?companyAddress=${address}`);
+      console.log("Plants API response status:", response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Plants fetched:", data);
+        setPlants(data);
+      } else {
+        console.error("Failed to fetch plants:", response.status, response.statusText);
+        const errorData = await response.json();
+        console.error("Error details:", errorData);
+      }
+    } catch (error) {
+      console.error("Error fetching plants:", error);
+    } finally {
+      setIsLoadingPlants(false);
+    }
+  };
+
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleBatchInputChange = (field: string, value: string) => {
+    setBatchData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const openBatchModal = async (template: ProductTemplate) => {
+    setSelectedTemplate(template);
+    setBatchData({
+      batchNumber: `BATCH-${Date.now()}`,
+      quantity: "",
+      plantId: ""
+    });
+
+    // Ensure plants are loaded when opening modal
+    if (plants.length === 0) {
+      await fetchPlants();
+    }
+
+    setShowBatchModal(true);
+  };
+
+  const closeBatchModal = () => {
+    setShowBatchModal(false);
+    setSelectedTemplate(null);
+    setBatchData({
+      batchNumber: "",
+      quantity: "",
+      plantId: ""
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -150,6 +226,47 @@ export default function ProductTemplatesPage() {
     } catch (error) {
       console.error("Error creating template:", error);
       toast.error("An error occurred while creating the template");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleBatchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTemplate) return;
+
+    setIsLoading(true);
+    try {
+      const batchPayload = {
+        batchNumber: batchData.batchNumber,
+        templateId: selectedTemplate._id?.toString(),
+        quantity: parseInt(batchData.quantity),
+        productionDate: new Date().toISOString(),
+        batchStatus: 'production',
+        carbonFootprint: selectedTemplate.specifications.carbonFootprintPerUnit * parseInt(batchData.quantity),
+        manufacturerAddress: address,
+        plantId: batchData.plantId
+      };
+
+      const response = await fetch('/api/product-batches', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(batchPayload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success('Product batch created successfully!');
+        closeBatchModal();
+      } else {
+        toast.error(result.error || 'Failed to create batch');
+      }
+    } catch (error) {
+      console.error('Error creating batch:', error);
+      toast.error('An error occurred while creating the batch');
     } finally {
       setIsLoading(false);
     }
@@ -452,6 +569,14 @@ export default function ProductTemplatesPage() {
               </div>
               <div className="flex items-center justify-between mt-4 pt-4 border-t">
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openBatchModal(template)}
+                  >
+                    <Factory className="h-3 w-3 mr-1" />
+                    Create Batch
+                  </Button>
                   <Button variant="outline" size="sm">
                     <Edit className="h-3 w-3 mr-1" />
                     Edit
@@ -493,6 +618,145 @@ export default function ProductTemplatesPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Create Batch Modal */}
+      <Dialog open={showBatchModal} onOpenChange={setShowBatchModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Create Product Batch</DialogTitle>
+            <DialogDescription>
+              Create a new production batch for {selectedTemplate?.templateName}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleBatchSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="batchNumber">Batch Number *</Label>
+              <Input
+                id="batchNumber"
+                value={batchData.batchNumber}
+                onChange={(e) => handleBatchInputChange("batchNumber", e.target.value)}
+                placeholder="Enter batch number"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="quantity">Quantity *</Label>
+              <Input
+                id="quantity"
+                type="number"
+                min="1"
+                value={batchData.quantity}
+                onChange={(e) => handleBatchInputChange("quantity", e.target.value)}
+                placeholder="Enter quantity to produce"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="plantId">Plant *</Label>
+              <Select
+                value={batchData.plantId}
+                onValueChange={(value) => handleBatchInputChange("plantId", value)}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    isLoadingPlants
+                      ? "Loading plants..."
+                      : plants.length === 0
+                        ? "No plants available"
+                        : "Select plant"
+                  } />
+                </SelectTrigger>
+                <SelectContent>
+                  {isLoadingPlants ? (
+                    <SelectItem value="" disabled>
+                      Loading plants...
+                    </SelectItem>
+                  ) : plants.length === 0 ? (
+                    <SelectItem value="" disabled>
+                      No plants registered. Please register a plant first.
+                    </SelectItem>
+                  ) : (
+                    plants.map((plant) => (
+                      <SelectItem key={plant._id?.toString()} value={plant._id?.toString() || ""}>
+                        {plant.plantName} - {plant.plantCode}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center justify-between">
+                {isLoadingPlants ? (
+                  <p className="text-sm text-muted-foreground">
+                    Loading plants...
+                  </p>
+                ) : plants.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No plants found. Please register a plant first in the Plant Registration section.
+                  </p>
+                ) : null}
+                {!isLoadingPlants && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchPlants}
+                    className="text-xs"
+                  >
+                    Refresh Plants
+                  </Button>
+                )}
+              </div>
+            </div>
+            {selectedTemplate && (
+              <div className="p-3 bg-muted rounded-lg">
+                <h4 className="font-medium mb-2">Batch Details</h4>
+                <div className="text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span>Template:</span>
+                    <span>{selectedTemplate.templateName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Carbon per unit:</span>
+                    <span>{selectedTemplate.specifications.carbonFootprintPerUnit} kg CO₂</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Total carbon footprint:</span>
+                    <span className="font-medium">
+                      {batchData.quantity ?
+                        (selectedTemplate.specifications.carbonFootprintPerUnit * parseInt(batchData.quantity)).toFixed(2) :
+                        '0'
+                      } kg CO₂
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeBatchModal}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Factory className="h-4 w-4 mr-2" />
+                    Create Batch
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
