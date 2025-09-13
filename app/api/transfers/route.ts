@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     await client.connect();
     const db = client.db('carbon-footprint');
-    const collection = db.collection<TokenTransfer>('transfers');
+    const collection = db.collection<TokenTransfer>('tokenTransfers');
 
     const { searchParams } = new URL(request.url);
     const fromAddress = searchParams.get("fromAddress");
@@ -46,11 +46,13 @@ export async function GET(request: NextRequest) {
 // POST /api/transfers - Create a new transfer record
 export async function POST(request: NextRequest) {
   try {
+    console.log('POST /api/transfers - Starting transfer record creation');
     await client.connect();
     const db = client.db('carbon-footprint');
-    const collection = db.collection<TokenTransfer>('transfers');
+    const collection = db.collection<TokenTransfer>('tokenTransfers');
 
     const body = await request.json();
+    console.log('Transfer data received:', body);
     const {
       fromAddress,
       toAddress,
@@ -87,14 +89,18 @@ export async function POST(request: NextRequest) {
       updatedAt: now
     };
 
+    console.log('Inserting transfer record:', transfer);
     const result = await collection.insertOne(transfer);
+    console.log('Insert result:', result);
 
     if (result.insertedId) {
+      console.log('Transfer record created successfully with ID:', result.insertedId);
       return NextResponse.json({
         message: "Transfer record created successfully",
         transfer: { ...transfer, _id: result.insertedId }
       }, { status: 201 });
     } else {
+      console.error('Failed to create transfer record - no inserted ID');
       return NextResponse.json(
         { error: "Failed to create transfer record" },
         { status: 500 }
@@ -103,8 +109,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error("Error creating transfer:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return NextResponse.json(
-      { error: "Failed to create transfer record" },
+      { error: "Failed to create transfer record", details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

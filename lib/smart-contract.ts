@@ -112,6 +112,10 @@ export class SmartContractService {
       console.log('Gas estimate:', gasEstimate.toString());
 
       // Execute the minting transaction
+      // Get current gas price
+      const gasPrice = await this.provider!.getFeeData();
+      console.log('Gas price data for minting:', gasPrice);
+
       const tx = await this.contract.mintBatch(
         params.batchNumber,
         params.templateId,
@@ -124,6 +128,9 @@ export class SmartContractService {
         "0x", // Empty data
         {
           gasLimit: gasEstimate * 120n / 100n, // Add 20% buffer
+          gasPrice: gasPrice.gasPrice,
+          maxFeePerGas: gasPrice.maxFeePerGas,
+          maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
         }
       );
 
@@ -173,6 +180,10 @@ export class SmartContractService {
         throw new Error('A batch with this number already exists for your address.');
       } else if (error.message.includes('Quantity must be greater than 0')) {
         throw new Error('Batch quantity must be greater than 0.');
+      } else if (error.message.includes('transaction underpriced') || error.message.includes('gas fee cap')) {
+        throw new Error('Gas fee too low. Please try again - the network may be congested.');
+      } else if (error.message.includes('UNKNOWN_ERROR')) {
+        throw new Error('Network error. Please check your connection and try again.');
       } else {
         throw new Error(`Failed to mint tokens: ${error.message}`);
       }
@@ -415,7 +426,11 @@ export class SmartContractService {
       );
       console.log('Gas estimate:', gasEstimate.toString());
 
-      // Execute transfer
+      // Get current gas price
+      const gasPrice = await this.provider!.getFeeData();
+      console.log('Gas price data:', gasPrice);
+
+      // Execute transfer with proper gas configuration
       const tx = await this.contract.transferToPartner(
         to,
         tokenId,
@@ -424,6 +439,9 @@ export class SmartContractService {
         '', // metadata
         {
           gasLimit: gasEstimate * 120n / 100n, // Add 20% buffer
+          gasPrice: gasPrice.gasPrice,
+          maxFeePerGas: gasPrice.maxFeePerGas,
+          maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
         }
       );
 
@@ -453,6 +471,10 @@ export class SmartContractService {
         throw new Error('Transfer was rejected by user.');
       } else if (error.message.includes('Insufficient balance')) {
         throw new Error(error.message);
+      } else if (error.message.includes('transaction underpriced') || error.message.includes('gas fee cap')) {
+        throw new Error('Gas fee too low. Please try again - the network may be congested.');
+      } else if (error.message.includes('UNKNOWN_ERROR')) {
+        throw new Error('Network error. Please check your connection and try again.');
       } else {
         throw new Error(`Failed to transfer tokens: ${error.message}`);
       }
