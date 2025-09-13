@@ -258,7 +258,7 @@ export default function ProductTemplatesPage() {
       const result = await response.json();
 
       if (response.ok) {
-        toast.success('Product batch created successfully!');
+        toast.success('Product batch created and tokens minted successfully!');
         closeBatchModal();
       } else {
         toast.error(result.error || 'Failed to create batch');

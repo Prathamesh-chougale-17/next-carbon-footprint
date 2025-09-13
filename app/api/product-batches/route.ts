@@ -104,6 +104,12 @@ export async function POST(request: NextRequest) {
     const result = await batchesCollection.insertOne(batch);
 
     if (result.insertedId) {
+      // TODO: Add ERC-1155 token minting here
+      // 1. Generate token ID
+      // 2. Upload metadata to IPFS
+      // 3. Mint tokens on blockchain
+      // 4. Update batch with token details
+
       return NextResponse.json(
         {
           message: 'Product batch created successfully',
