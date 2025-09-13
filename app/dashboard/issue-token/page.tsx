@@ -19,8 +19,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Product, Token } from "@/lib/models";
+import { useWallet } from "@/hooks/use-wallet";
 
 export default function IssueTokenPage() {
+  const { address } = useWallet();
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState("");
@@ -28,16 +30,15 @@ export default function IssueTokenPage() {
   const [mintedToken, setMintedToken] = useState<Token | null>(null);
   const [isMinting, setIsMinting] = useState(false);
 
-  // Mock wallet address - in real app, this would come from wallet connection
-  const mockWalletAddress = "0x1234567890123456789012345678901234567890";
-
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [address]);
 
   const fetchProducts = async () => {
+    if (!address) return;
+    
     try {
-      const response = await fetch(`/api/products?companyAddress=${mockWalletAddress}`);
+      const response = await fetch(`/api/products?companyAddress=${address}`);
       if (response.ok) {
         const data = await response.json();
         // Filter only raw materials for token minting
@@ -60,7 +61,7 @@ export default function IssueTokenPage() {
 
       const tokenData = {
         productId: selectedProduct._id?.toString(),
-        manufacturerAddress: mockWalletAddress,
+        manufacturerAddress: address,
         quantity: parseInt(quantity),
         cid: `Qm${Math.random().toString(36).substring(2, 15)}`, // Mock IPFS hash
         blockNumber: Math.floor(Math.random() * 1000000) + 1000000,

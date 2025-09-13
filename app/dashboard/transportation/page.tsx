@@ -23,8 +23,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Transportation } from "@/lib/models";
+import { useWallet } from "@/hooks/use-wallet";
 
 export default function TransportationPage() {
+  const { address } = useWallet();
   const [transportations, setTransportations] = useState<Transportation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -40,16 +42,15 @@ export default function TransportationPage() {
     companyAddress: ""
   });
 
-  // Mock wallet address - in real app, this would come from wallet connection
-  const mockWalletAddress = "0x1234567890123456789012345678901234567890";
-
   useEffect(() => {
     fetchTransportations();
-  }, []);
+  }, [address]);
 
   const fetchTransportations = async () => {
+    if (!address) return;
+    
     try {
-      const response = await fetch(`/api/transportation?companyAddress=${mockWalletAddress}`);
+      const response = await fetch(`/api/transportation?companyAddress=${address}`);
       if (response.ok) {
         const data = await response.json();
         setTransportations(data);
@@ -97,7 +98,7 @@ export default function TransportationPage() {
         fuelConsumption: parseFloat(formData.fuelConsumption),
         carbonFootprint,
         productIds,
-        companyAddress: mockWalletAddress
+        companyAddress: address
       };
 
       const response = await fetch('/api/transportation', {

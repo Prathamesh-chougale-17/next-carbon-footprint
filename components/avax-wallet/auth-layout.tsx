@@ -45,7 +45,7 @@ const WalletConnectPrompt = () => (
             Connect Your Wallet
           </CardTitle>
           <CardDescription className="mt-2 text-gray-600 dark:text-gray-400">
-            Connect your Avalanche wallet to access the gaming platform
+            Connect your Avalanche wallet to access the carbon tracking platform
           </CardDescription>
         </div>
       </CardHeader>

@@ -11,9 +11,11 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Building2, Upload, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useWallet } from "@/hooks/use-wallet";
 
 export default function RegisterCompanyPage() {
   const router = useRouter();
+  const { address } = useWallet();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     companyName: "",
@@ -24,8 +26,17 @@ export default function RegisterCompanyPage() {
     companyWebsite: "",
     companyEmail: "",
     companyPhone: "",
-    walletAddress: ""
+    walletAddress: address || ""
   });
+
+  useEffect(() => {
+    if (address) {
+      setFormData(prev => ({
+        ...prev,
+        walletAddress: address
+      }));
+    }
+  }, [address]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -204,12 +215,12 @@ export default function RegisterCompanyPage() {
                 <Input
                   id="walletAddress"
                   value={formData.walletAddress}
-                  onChange={(e) => handleInputChange('walletAddress', e.target.value)}
-                  placeholder="0x..."
-                  required
+                  placeholder="Connect wallet to auto-fill"
+                  readOnly
+                  className="bg-muted"
                 />
                 <p className="text-xs text-muted-foreground">
-                  This will be used for blockchain transactions and company identification.
+                  This is automatically filled from your connected wallet.
                 </p>
               </div>
 

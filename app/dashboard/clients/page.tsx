@@ -23,8 +23,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Client } from "@/lib/models";
+import { useWallet } from "@/hooks/use-wallet";
 
 export default function ClientsPage() {
+  const { address } = useWallet();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -39,16 +41,15 @@ export default function ClientsPage() {
     companyAddress: ""
   });
 
-  // Mock wallet address - in real app, this would come from wallet connection
-  const mockWalletAddress = "0x1234567890123456789012345678901234567890";
-
   useEffect(() => {
     fetchClients();
-  }, []);
+  }, [address]);
 
   const fetchClients = async () => {
+    if (!address) return;
+    
     try {
-      const response = await fetch(`/api/clients?companyAddress=${mockWalletAddress}`);
+      const response = await fetch(`/api/clients?companyAddress=${address}`);
       if (response.ok) {
         const data = await response.json();
         setClients(data);
@@ -72,7 +73,7 @@ export default function ClientsPage() {
     try {
       const clientData = {
         ...formData,
-        companyAddress: mockWalletAddress
+        companyAddress: address
       };
 
       const response = await fetch('/api/clients', {

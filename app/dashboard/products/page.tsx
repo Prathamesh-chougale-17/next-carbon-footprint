@@ -22,8 +22,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Product } from "@/lib/models";
+import { useWallet } from "@/hooks/use-wallet";
 
 export default function ProductsPage() {
+  const { address } = useWallet();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -38,16 +40,15 @@ export default function ProductsPage() {
     companyAddress: ""
   });
 
-  // Mock wallet address - in real app, this would come from wallet connection
-  const mockWalletAddress = "0x1234567890123456789012345678901234567890";
-
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [address]);
 
   const fetchProducts = async () => {
+    if (!address) return;
+    
     try {
-      const response = await fetch(`/api/products?companyAddress=${mockWalletAddress}`);
+      const response = await fetch(`/api/products?companyAddress=${address}`);
       if (response.ok) {
         const data = await response.json();
         setProducts(data);
@@ -73,7 +74,7 @@ export default function ProductsPage() {
         ...formData,
         weight: parseFloat(formData.weight),
         carbonFootprint: parseFloat(formData.carbonFootprint),
-        companyAddress: mockWalletAddress
+        companyAddress: address
       };
 
       const response = await fetch('/api/products', {
