@@ -16,6 +16,8 @@ import {
   Leaf,
   BarChart3,
   Activity,
+  Factory,
+  ArrowRightLeft,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -27,13 +29,14 @@ import {
 
 export default function DashboardPage() {
   // Mock loading state - in real app, this would come from API loading state
-  const isLoading = true; // Set to true to see loading states
+  const isLoading = false; // Set to false to show actual content
 
   // Mock data - in real app, this would come from API
   const stats = {
     totalCarbonFootprint: 1250.5,
     carbonReduction: -15.2,
-    productsTracked: 45,
+    productTemplates: 8,
+    productBatches: 45,
     clients: 12,
     transportationTrips: 8,
     tokensMinted: 23,
@@ -42,9 +45,9 @@ export default function DashboardPage() {
   const recentActivities = [
     {
       id: 1,
-      type: "product",
-      title: "New product registered",
-      description: "Steel Components - 2.5kg CO2/kg",
+      type: "template",
+      title: "New product template created",
+      description: "Steel Bolt M8 - 0.5kg CO2/unit",
       time: "2 hours ago",
       icon: Package,
     },
@@ -130,14 +133,29 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Products Tracked
+                Product Templates
               </CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.productsTracked}</div>
+              <div className="text-2xl font-bold">{stats.productTemplates}</div>
               <p className="text-xs text-muted-foreground">
-                <span className="text-green-600">+3</span> new this month
+                <span className="text-green-600">+2</span> new this month
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Product Batches
+              </CardTitle>
+              <Factory className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.productBatches}</div>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-green-600">+8</span> new this month
               </p>
             </CardContent>
           </Card>
@@ -200,29 +218,45 @@ export default function DashboardPage() {
             <Link href="/dashboard/products">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Register Product
+                  Create Template
                 </CardTitle>
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground">
-                  Add new products with carbon footprint data
+                  Define product specifications and carbon footprint data
                 </p>
               </CardContent>
             </Link>
           </Card>
 
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <Link href="/dashboard/issue-token">
+            <Link href="/dashboard/batches">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Mint Token
+                  Create Batch
                 </CardTitle>
-                <Coins className="h-4 w-4 text-muted-foreground" />
+                <Factory className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground">
-                  Create carbon credit tokens
+                  Start production run and mint ERC-1155 tokens
+                </p>
+              </CardContent>
+            </Link>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <Link href="/dashboard/transfers">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Transfer Tokens
+                </CardTitle>
+                <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Transfer tokens to next in supply chain
                 </p>
               </CardContent>
             </Link>

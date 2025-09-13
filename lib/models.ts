@@ -12,11 +12,86 @@ export interface Company {
   companyEmail: string;
   companyPhone: string;
   companyLogo?: string;
-  products: string[];
+  productTemplates: string[]; // Changed from products to productTemplates
   createdAt: Date;
   updatedAt: Date;
 }
 
+// Product Template - Definition of a product type
+export interface ProductTemplate {
+  _id?: ObjectId;
+  templateName: string;
+  description: string;
+  category: string;
+  specifications: {
+    weight: number;
+    dimensions?: {
+      length: number;
+      width: number;
+      height: number;
+    };
+    materials: string[];
+    carbonFootprintPerUnit: number;
+  };
+  manufacturerAddress: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Product Batch - Actual production run that mints ERC-1155 tokens
+export interface ProductBatch {
+  _id?: ObjectId;
+  batchNumber: string;
+  templateId: string; // Reference to ProductTemplate
+  quantity: number;
+  productionDate: Date;
+  expiryDate?: Date;
+  batchStatus: 'production' | 'completed' | 'shipped' | 'delivered';
+  carbonFootprint: number; // Total carbon footprint for this batch
+  manufacturerAddress: string;
+  manufacturingLocation: string;
+  qualityControl: {
+    passed: boolean;
+    notes?: string;
+    inspectorName?: string;
+    inspectionDate?: Date;
+  };
+  // ERC-1155 Token details
+  tokenId?: number;
+  tokenContractAddress?: string;
+  txHash?: string;
+  blockNumber?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Token Transfer - Movement of tokens in supply chain
+export interface TokenTransfer {
+  _id?: ObjectId;
+  tokenId: number;
+  batchId: string; // Reference to ProductBatch
+  fromAddress: string;
+  toAddress: string;
+  quantity: number;
+  transferType: 'manufacturing' | 'logistics' | 'retail' | 'consumer';
+  transferReason: string;
+  carbonFootprint: number;
+  // Blockchain details
+  txHash: string;
+  blockNumber: number;
+  gasUsed?: number;
+  // Supply chain details
+  fromLocation: string;
+  toLocation: string;
+  transportMethod?: string;
+  estimatedDelivery?: Date;
+  actualDelivery?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Legacy Product interface for backward compatibility
 export interface Product {
   _id?: ObjectId;
   productName: string;

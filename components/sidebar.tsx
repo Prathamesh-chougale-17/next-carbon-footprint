@@ -22,19 +22,31 @@ const menuItems = [
     title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
-    access: ["Manufacturer", "OEM", "Logistics"]
+    access: ["Manufacturer", "Retailer", "Logistics"]
   },
   {
-    title: "Products Registration",
+    title: "Product Templates",
     url: "/dashboard/products",
     icon: Package,
     access: ["Manufacturer"]
   },
   {
+    title: "Product Batches",
+    url: "/dashboard/batches",
+    icon: Factory,
+    access: ["Manufacturer"]
+  },
+  {
+    title: "Token Transfers",
+    url: "/dashboard/transfers",
+    icon: ArrowRightLeft,
+    access: ["Manufacturer", "Retailer", "Logistics"]
+  },
+  {
     title: "Clients",
     url: "/dashboard/clients",
     icon: Users,
-    access: ["Manufacturer", "OEM", "Logistics"]
+    access: ["Manufacturer", "Retailer", "Logistics"]
   },
   {
     title: "Transportation",
@@ -43,28 +55,10 @@ const menuItems = [
     access: ["Logistics"]
   },
   {
-    title: "Issue Token",
-    url: "/dashboard/issue-token",
-    icon: Coins,
-    access: ["Manufacturer"]
-  },
-  {
-    title: "Asset Transfer",
-    url: "/dashboard/asset-transfer",
-    icon: ArrowRightLeft,
-    access: ["Manufacturer", "OEM", "Logistics"]
-  },
-  {
-    title: "Manufacture",
-    url: "/dashboard/manufacture",
-    icon: Factory,
-    access: ["Manufacturer"]
-  },
-  {
     title: "QR Code",
     url: "/dashboard/qr-code",
     icon: QrCode,
-    access: ["Manufacturer", "OEM", "Logistics"]
+    access: ["Manufacturer", "Retailer", "Logistics"]
   },
 ];
 
