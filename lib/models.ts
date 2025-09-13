@@ -60,36 +60,17 @@ export interface ProductBatch {
   updatedAt: Date;
 }
 
-// Partner - Represents a business partner (supplier/customer)
+// Partner Relationship - Simple bidirectional relationship model
 export interface Partner {
   _id?: ObjectId;
-  companyAddress: string; // Wallet address of the partner company
-  companyName: string;
-  contactEmail?: string;
+  selfAddress: string; // Your company address (the one creating the relationship)
+  companyAddress: string; // Partner company address
+  relationship: 'supplier' | 'customer'; // From your perspective
+  companyName?: string; // Optional: partner company name
+  contactEmail?: string; // Optional: partner contact info
   contactPhone?: string;
-  businessType: 'manufacturer' | 'retailer' | 'logistics' | 'supplier' | 'customer';
-  description?: string;
-  location?: {
-    address: string;
-    city: string;
-    state: string;
-    country: string;
-    postalCode: string;
-  };
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// Partner Relationship - Bidirectional mapping between partners
-export interface PartnerRelationship {
-  _id?: ObjectId;
-  companyAddress: string; // The company that initiated the relationship
-  partnerAddress: string; // The partner company
-  relationshipType: 'supplier' | 'customer'; // From the perspective of companyAddress
-  status: 'active' | 'inactive' | 'pending';
   notes?: string;
-  establishedDate: Date;
+  status: 'active' | 'inactive';
   createdAt: Date;
   updatedAt: Date;
 }

@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
     const companiesCollection = db.collection<Company>('companies');
 
     // Check if company exists (case-insensitive)
-    const company = await companiesCollection.findOne({ 
-      walletAddress: companyAddress.toLowerCase() 
+    const company = await companiesCollection.findOne({
+      walletAddress: companyAddress.toLowerCase()
     });
     if (!company) {
       return NextResponse.json(
@@ -116,6 +116,7 @@ export async function POST(request: NextRequest) {
           longitude: parseFloat(location.coordinates.longitude)
         }
       },
+      isActive: true,
       createdAt: new Date(),
       updatedAt: new Date()
     };

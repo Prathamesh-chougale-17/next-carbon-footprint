@@ -1,209 +1,136 @@
-import { NextRequest, NextResponse } from 'next/server';
-import client from '@/lib/mongodb';
-import { Partner, PartnerRelationship, Company } from '@/lib/models';
+import { NextRequest, NextResponse } from "next/server";
+import client from "@/lib/mongodb";
+import { Partner } from "@/lib/models";
 
-// GET /api/partners - Search for potential partners or get existing partners
+// GET /api/partners - Get all partners for a specific company address
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const companyAddress = searchParams.get('companyAddress');
-    const searchTerm = searchParams.get('search');
-    const relationshipType = searchParams.get('relationshipType'); // 'supplier' or 'customer'
-    const status = searchParams.get('status');
-
     await client.connect();
     const db = client.db('carbon-footprint');
+    const collection = db.collection<Partner>('partners');
 
-    if (searchTerm) {
-      // Search for potential partners (companies that can be added as partners)
-      const companiesCollection = db.collection<Company>('companies');
-      const partnersCollection = db.collection<Partner>('partners');
+    const { searchParams } = new URL(request.url);
+    const selfAddress = searchParams.get("selfAddress");
 
-      // Find companies matching the search term
-      const companies = await companiesCollection
-        .find({
-          companyAddress: { $ne: companyAddress }, // Exclude current user
-          $or: [
-            { companyName: { $regex: searchTerm, $options: 'i' } },
-            { companyAddress: { $regex: searchTerm, $options: 'i' } }
-          ]
-        })
-        .limit(10)
-        .toArray();
-
-      // Convert companies to partner format for display
-      const potentialPartners = companies.map(company => ({
-        companyAddress: company.companyAddress,
-        companyName: company.companyName,
-        businessType: company.businessType || 'manufacturer',
-        description: company.description,
-        isExistingPartner: false
-      }));
-
-      return NextResponse.json(potentialPartners);
+    if (!selfAddress) {
+      return NextResponse.json(
+        { error: "Self address is required" },
+        { status: 400 }
+      );
     }
 
-    // Get existing partners for a company
-    const relationshipsCollection = db.collection<PartnerRelationship>('partnerRelationships');
-    let query: any = { companyAddress };
+    // Get all partners where selfAddress matches
+    const partners = await collection.find({
+      selfAddress: selfAddress.toLowerCase(),
+      status: "active"
+    }).sort({ createdAt: -1 }).toArray();
 
-    if (relationshipType) {
-      query.relationshipType = relationshipType;
-    }
-
-    if (status) {
-      query.status = status;
-    }
-
-    const relationships = await relationshipsCollection
-      .find(query)
-      .sort({ createdAt: -1 })
-      .toArray();
-
-    // Get partner details
-    const companiesCollection = db.collection<Company>('companies');
-    const partnersWithDetails = await Promise.all(
-      relationships.map(async (relationship) => {
-        const company = await companiesCollection.findOne({
-          companyAddress: relationship.partnerAddress
-        });
-
-        return {
-          ...relationship,
-          partnerDetails: company ? {
-            companyName: company.companyName,
-            businessType: company.businessType,
-            description: company.description
-          } : null
-        };
-      })
-    );
-
-    return NextResponse.json(partnersWithDetails);
+    return NextResponse.json(partners);
   } catch (error) {
-    console.error('Error fetching partners:', error);
+    console.error("Error fetching partners:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch partners' },
+      { error: "Failed to fetch partners" },
       { status: 500 }
     );
   }
 }
 
-// POST /api/partners - Add a new partner relationship
+// POST /api/partners - Create a new partner relationship (bidirectional)
 export async function POST(request: NextRequest) {
   try {
+    await client.connect();
+    const db = client.db('carbon-footprint');
+    const collection = db.collection<Partner>('partners');
+
     const body = await request.json();
     const {
+      selfAddress,
       companyAddress,
-      partnerAddress,
-      relationshipType,
+      relationship,
+      companyName,
+      contactEmail,
+      contactPhone,
       notes
     } = body;
 
-    // Validate required fields
-    if (!companyAddress || !partnerAddress || !relationshipType) {
+    // Validation
+    if (!selfAddress || !companyAddress || !relationship) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: "Self address, company address, and relationship are required" },
         { status: 400 }
       );
     }
 
-    // Validate relationship type
-    if (!['supplier', 'customer'].includes(relationshipType)) {
+    if (selfAddress.toLowerCase() === companyAddress.toLowerCase()) {
       return NextResponse.json(
-        { error: 'Invalid relationship type' },
+        { error: "Cannot add yourself as a partner" },
         { status: 400 }
       );
     }
 
-    // Prevent self-partnership
-    if (companyAddress === partnerAddress) {
+    if (!["supplier", "customer"].includes(relationship)) {
       return NextResponse.json(
-        { error: 'Cannot add yourself as a partner' },
+        { error: "Relationship must be either 'supplier' or 'customer'" },
         { status: 400 }
-      );
-    }
-
-    await client.connect();
-    const db = client.db('carbon-footprint');
-    const relationshipsCollection = db.collection<PartnerRelationship>('partnerRelationships');
-    const companiesCollection = db.collection<Company>('companies');
-
-    // Check if partner company exists
-    const partnerCompany = await companiesCollection.findOne({
-      companyAddress: partnerAddress
-    });
-
-    if (!partnerCompany) {
-      return NextResponse.json(
-        { error: 'Partner company not found' },
-        { status: 404 }
       );
     }
 
     // Check if relationship already exists
-    const existingRelationship = await relationshipsCollection.findOne({
-      companyAddress,
-      partnerAddress
+    const existingPartner = await collection.findOne({
+      selfAddress: selfAddress.toLowerCase(),
+      companyAddress: companyAddress.toLowerCase()
     });
 
-    if (existingRelationship) {
+    if (existingPartner) {
       return NextResponse.json(
-        { error: 'Partnership already exists' },
+        { error: "Partner relationship already exists" },
         { status: 409 }
       );
     }
 
-    // Create bidirectional relationships
+    // Create two entries for bidirectional relationship
     const now = new Date();
 
-    // Relationship from company to partner
-    const relationship1: Omit<PartnerRelationship, '_id'> = {
-      companyAddress,
-      partnerAddress,
-      relationshipType,
-      status: 'active',
+    // Entry 1: From your perspective
+    const partner1: Omit<Partner, '_id'> = {
+      selfAddress: selfAddress.toLowerCase(),
+      companyAddress: companyAddress.toLowerCase(),
+      relationship: relationship,
+      companyName,
+      contactEmail,
+      contactPhone,
       notes,
-      establishedDate: now,
+      status: "active",
       createdAt: now,
       updatedAt: now
     };
 
-    // Inverse relationship from partner to company
-    const inverseRelationshipType = relationshipType === 'supplier' ? 'customer' : 'supplier';
-    const relationship2: Omit<PartnerRelationship, '_id'> = {
-      companyAddress: partnerAddress,
-      partnerAddress: companyAddress,
-      relationshipType: inverseRelationshipType,
-      status: 'active',
-      notes: `Partner relationship established with ${partnerCompany.companyName}`,
-      establishedDate: now,
+    // Entry 2: From partner's perspective (reverse relationship)
+    const partner2: Omit<Partner, '_id'> = {
+      selfAddress: companyAddress.toLowerCase(),
+      companyAddress: selfAddress.toLowerCase(),
+      relationship: relationship === "supplier" ? "customer" : "supplier",
+      companyName: undefined, // Partner will fill their own company name
+      contactEmail: undefined,
+      contactPhone: undefined,
+      notes: undefined,
+      status: "active",
       createdAt: now,
       updatedAt: now
     };
 
-    // Insert both relationships
-    const result1 = await relationshipsCollection.insertOne(relationship1);
-    const result2 = await relationshipsCollection.insertOne(relationship2);
+    // Insert both entries
+    const result = await collection.insertMany([partner1, partner2]);
 
-    if (result1.insertedId && result2.insertedId) {
-      return NextResponse.json(
-        {
-          message: 'Partnership established successfully',
-          relationshipId: result1.insertedId.toString()
-        },
-        { status: 201 }
-      );
-    } else {
-      return NextResponse.json(
-        { error: 'Failed to establish partnership' },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json({
+      message: "Partner relationship created successfully",
+      partner: partner1
+    }, { status: 201 });
+
   } catch (error) {
-    console.error('Error creating partnership:', error);
+    console.error("Error creating partner:", error);
     return NextResponse.json(
-      { error: 'Failed to create partnership' },
+      { error: "Failed to create partner relationship" },
       { status: 500 }
     );
   }

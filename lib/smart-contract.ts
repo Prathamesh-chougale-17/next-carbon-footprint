@@ -1,6 +1,9 @@
 import { ethers } from 'ethers';
 import { CONTRACT_CONFIG, CONTRACT_HELPERS, BatchMintParams } from './contract';
 
+// Re-export BatchMintParams for use in other modules
+export type { BatchMintParams };
+
 // Smart contract service for batch token minting
 export class SmartContractService {
   private contract: ethers.Contract | null = null;
