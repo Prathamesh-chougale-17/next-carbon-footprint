@@ -316,7 +316,7 @@ export default function ProductTemplatesPage() {
         description: formData.description,
         category: formData.category,
         specifications: {
-        weight: parseFloat(formData.weight),
+          weight: parseFloat(formData.weight),
           dimensions: formData.length && formData.width && formData.height ? {
             length: parseFloat(formData.length),
             width: parseFloat(formData.width),
@@ -415,76 +415,7 @@ export default function ProductTemplatesPage() {
       const result = await response.json();
 
       if (response.ok) {
-        toast.success('Product batch created successfully! Now minting tokens...');
-
-        // Now mint tokens on the blockchain
-        try {
-          const { smartContractService } = await import('@/lib/smart-contract');
-
-          // Initialize the smart contract service
-          await smartContractService.initialize();
-
-          // Validate and prepare minting parameters
-          const batchNumber = parseInt(batchData.batchNumber);
-          const quantity = parseInt(batchData.quantity);
-
-          if (isNaN(batchNumber) || batchNumber <= 0) {
-            throw new Error('Invalid batch number. Please enter a valid positive number.');
-          }
-
-          if (isNaN(quantity) || quantity <= 0) {
-            throw new Error('Invalid quantity. Please enter a valid positive number.');
-          }
-
-          // Calculate carbon footprint (convert from tons to kg by multiplying by 1000)
-          const carbonFootprintPerUnit = selectedTemplate.specifications.carbonFootprintPerUnit;
-          const totalCarbonFootprintTons = carbonFootprintPerUnit * quantity;
-          const totalCarbonFootprintKg = Math.round(totalCarbonFootprintTons * 1000);
-
-          console.log('Carbon footprint calculation (tons to kg):', {
-            carbonFootprintPerUnitTons: carbonFootprintPerUnit,
-            quantity,
-            totalCarbonFootprintTons,
-            totalCarbonFootprintKg
-          });
-
-          const mintParams = {
-            batchNumber,
-            templateId: selectedTemplate._id?.toString() || '',
-            quantity,
-            productionDate: Math.floor(Date.now() / 1000), // Unix timestamp
-            expiryDate: 0, // No expiry for now
-            carbonFootprint: totalCarbonFootprintKg,
-            plantId: batchData.plantId,
-            metadataURI: `https://api.carbontrack.com/metadata/batch/${batchNumber}`
-          };
-
-          // Mint tokens
-          const mintResult = await smartContractService.mintBatch(mintParams);
-
-          // Update the batch with token information
-          const updateResponse = await fetch(`/api/product-batches/${result.batchId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              tokenId: mintResult.tokenId,
-              txHash: mintResult.txHash,
-              blockNumber: undefined // Will be filled later
-            }),
-          });
-
-          if (updateResponse.ok) {
-            toast.success(`Batch created and tokens minted successfully! Token ID: ${mintResult.tokenId}`);
-        } else {
-            toast.warning('Batch created but failed to update with token information');
-          }
-
-        } catch (contractError: any) {
-          console.error('Smart contract error:', contractError);
-          toast.error(`Batch created but token minting failed: ${contractError.message}`);
-        }
+        toast.success('Product batch created successfully! You can now mint tokens from the Batches page.');
 
         closeBatchModal();
         setBatchData({ batchNumber: '', quantity: '', plantId: '' });
@@ -551,33 +482,33 @@ export default function ProductTemplatesPage() {
 
       {/* Create Template Form */}
       {showForm && (isLoading ? (
-          <FormSkeleton />
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+        <FormSkeleton />
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />
               Create Product Template
-              </CardTitle>
-              <CardDescription>
+            </CardTitle>
+            <CardDescription>
               Define a reusable product template with specifications and carbon footprint data.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label htmlFor="templateName">Template Name *</Label>
-                    <Input
+                  <Input
                     id="templateName"
                     value={formData.templateName}
-                      onChange={(e) =>
+                    onChange={(e) =>
                       handleInputChange("templateName", e.target.value)
-                      }
+                    }
                     placeholder="e.g., Steel Bolt M8"
-                      required
-                    />
-                  </div>
+                    required
+                  />
+                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="category">Category *</Label>
@@ -615,20 +546,20 @@ export default function ProductTemplatesPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="weight">Weight (kg) *</Label>
-                    <Input
-                      id="weight"
-                      type="number"
-                      step="0.01"
-                      value={formData.weight}
-                      onChange={(e) =>
-                        handleInputChange("weight", e.target.value)
-                      }
+                <div className="space-y-2">
+                  <Label htmlFor="weight">Weight (kg) *</Label>
+                  <Input
+                    id="weight"
+                    type="number"
+                    step="0.01"
+                    value={formData.weight}
+                    onChange={(e) =>
+                      handleInputChange("weight", e.target.value)
+                    }
                     placeholder="0.00"
-                      required
-                    />
-                  </div>
+                    required
+                  />
+                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="length">Length (cm)</Label>
@@ -657,38 +588,38 @@ export default function ProductTemplatesPage() {
                     placeholder="0.0"
                   />
                 </div>
-                </div>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label htmlFor="height">Height (cm)</Label>
-                    <Input
+                  <Input
                     id="height"
-                      type="number"
+                    type="number"
                     step="0.1"
                     value={formData.height}
-                      onChange={(e) =>
+                    onChange={(e) =>
                       handleInputChange("height", e.target.value)
-                      }
+                    }
                     placeholder="0.0"
-                    />
-                  </div>
+                  />
+                </div>
 
-                  <div className="space-y-2">
+                <div className="space-y-2">
                   <Label htmlFor="carbonFootprintPerUnit">Carbon Footprint per Unit (tons CO₂/unit) *</Label>
-                    <Input
+                  <Input
                     id="carbonFootprintPerUnit"
                     type="number"
                     step="0.01"
                     value={formData.carbonFootprintPerUnit}
-                      onChange={(e) =>
+                    onChange={(e) =>
                       handleInputChange("carbonFootprintPerUnit", e.target.value)
-                      }
+                    }
                     placeholder="0.00"
-                      required
-                    />
-                  </div>
+                    required
+                  />
                 </div>
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="materials">Materials (comma-separated) *</Label>
@@ -703,43 +634,43 @@ export default function ProductTemplatesPage() {
                 />
               </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isRawMaterial"
-                    checked={formData.isRawMaterial}
-                    onCheckedChange={(checked) =>
-                      handleInputChange("isRawMaterial", checked as boolean)
-                    }
-                  />
-                  <Label htmlFor="isRawMaterial">Is Raw Material</Label>
-                </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isRawMaterial"
+                  checked={formData.isRawMaterial}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("isRawMaterial", checked as boolean)
+                  }
+                />
+                <Label htmlFor="isRawMaterial">Is Raw Material</Label>
+              </div>
 
-                <div className="flex items-center justify-between pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowForm(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              <div className="flex items-center justify-between pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowForm(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                       Creating...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="h-4 w-4 mr-2" />
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
                       Create Template
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        ))}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ))}
 
       {/* Templates List */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

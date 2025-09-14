@@ -19,6 +19,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
     Package,
     Search,
@@ -35,7 +38,7 @@ import { toast } from "sonner";
 import { NetworkStatus } from "@/components/network-status";
 import { smartContractService } from "@/lib/smart-contract";
 import { format } from "date-fns";
-import { Partner } from "@/lib/models";
+import { Partner, TokenTransfer } from "@/lib/models";
 
 // Loading skeleton components
 const PageHeaderSkeleton = () => (
@@ -116,6 +119,7 @@ export default function InventoryPage() {
     const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([]);
     const [databaseBatches, setDatabaseBatches] = useState<DatabaseBatch[]>([]);
     const [customers, setCustomers] = useState<Partner[]>([]);
+    const [transferHistory, setTransferHistory] = useState<TokenTransfer[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -234,6 +238,25 @@ export default function InventoryPage() {
         return null;
     };
 
+    // Fetch transfer history
+    const fetchTransferHistory = async () => {
+        if (!address) return;
+
+        try {
+            console.log('Fetching transfer history for address:', address);
+            const response = await fetch(`/api/transfers?address=${address}`);
+            if (response.ok) {
+                const transfers = await response.json();
+                console.log('Transfer history fetched:', transfers);
+                setTransferHistory(transfers);
+            } else {
+                console.error('Failed to fetch transfer history:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error fetching transfer history:', error);
+        }
+    };
+
     // Load data on component mount
     useEffect(() => {
         const loadData = async () => {
@@ -241,7 +264,8 @@ export default function InventoryPage() {
             await Promise.all([
                 fetchTokenBalances(),
                 fetchDatabaseBatches(),
-                fetchCustomers()
+                fetchCustomers(),
+                fetchTransferHistory()
             ]);
             setIsInitialLoading(false);
         };
@@ -667,8 +691,11 @@ export default function InventoryPage() {
 
             toast.success(`Transfer successful! Transaction: ${result.txHash.slice(0, 10)}...`);
 
-            // Refresh token balances
-            await fetchTokenBalances();
+            // Refresh token balances and transfer history
+            await Promise.all([
+                fetchTokenBalances(),
+                fetchTransferHistory()
+            ]);
 
             // Close modal and reset form
             setShowTransferModal(false);
@@ -771,7 +798,7 @@ export default function InventoryPage() {
                         <Package className="h-4 w-4 mr-2" />
                         Debug
                     </Button>
-                    <Button onClick={() => Promise.all([fetchTokenBalances(), fetchDatabaseBatches(), fetchCustomers()])}>
+                    <Button onClick={() => Promise.all([fetchTokenBalances(), fetchDatabaseBatches(), fetchCustomers(), fetchTransferHistory()])}>
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Refresh
                     </Button>
@@ -796,7 +823,7 @@ export default function InventoryPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Tokens</CardTitle>
@@ -849,35 +876,203 @@ export default function InventoryPage() {
                         </p>
                     </CardContent>
                 </Card>
-            </div>
-
-            {/* Token List */}
-            {filteredTokens.length === 0 ? (
                 <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                        <Wallet className="h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No tokens found</h3>
-                        <p className="text-muted-foreground text-center mb-4">
-                            {tokenBalances.length === 0
-                                ? "You don't have any tokens yet. Create batches from the Product Templates page to mint tokens."
-                                : "No tokens match your current search."}
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Transfer History</CardTitle>
+                        <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{transferHistory.length}</div>
+                        <p className="text-xs text-muted-foreground">
+                            Total transactions
                         </p>
-                        {tokenBalances.length === 0 && (
-                            <Button onClick={() => window.location.href = '/dashboard/products'}>
-                                <Package className="h-4 w-4 mr-2" />
-                                Create Your First Batch
-                            </Button>
-                        )}
                     </CardContent>
                 </Card>
-            ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredTokens.map((token) => {
-                        const dbBatch = getDatabaseBatch(token.tokenId);
-                        return <TokenCard key={token.tokenId} token={token} dbBatch={dbBatch} />;
-                    })}
-                </div>
-            )}
+            </div>
+
+
+            {/* Token Inventory with Tabs */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Package className="h-5 w-5" />
+                        Token Inventory
+                    </CardTitle>
+                    <CardDescription>
+                        Manage your blockchain tokens and view transfer history
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Tabs defaultValue="tokens" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="tokens" className="flex items-center gap-2">
+                                <Package className="h-4 w-4" />
+                                My Tokens
+                            </TabsTrigger>
+                            <TabsTrigger value="transfers" className="flex items-center gap-2">
+                                <ArrowRightLeft className="h-4 w-4" />
+                                Transfer History
+                            </TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="tokens" className="mt-6">
+                            {/* Token List Content - Move existing token list here */}
+                            {filteredTokens.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                    <p>No tokens found</p>
+                                    <p className="text-sm">
+                                        {tokenBalances.length === 0
+                                            ? "You don't have any tokens yet. Create batches from the Product Templates page to mint tokens."
+                                            : "No tokens match your current search."}
+                                    </p>
+                                    {tokenBalances.length === 0 && (
+                                        <Button onClick={() => window.location.href = '/dashboard/products'} className="mt-4">
+                                            <Package className="h-4 w-4 mr-2" />
+                                            Create Your First Batch
+                                        </Button>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                    {filteredTokens.map((token) => {
+                                        const dbBatch = getDatabaseBatch(token.tokenId);
+                                        return <TokenCard key={token.tokenId} token={token} dbBatch={dbBatch} />;
+                                    })}
+                                </div>
+                            )}
+                        </TabsContent>
+
+                        <TabsContent value="transfers" className="mt-6">
+                            {transferHistory.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <ArrowRightLeft className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                    <p>No transfer transactions found</p>
+                                    <p className="text-sm">Transfer tokens to see transaction history here</p>
+                                </div>
+                            ) : (
+                                <div className="border rounded-lg">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="w-[100px]">Status</TableHead>
+                                                <TableHead>Token</TableHead>
+                                                <TableHead>From</TableHead>
+                                                <TableHead>To</TableHead>
+                                                <TableHead>Quantity</TableHead>
+                                                <TableHead>Date</TableHead>
+                                                <TableHead className="w-[100px]">Actions</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {transferHistory
+                                                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                                                .map((transfer) => {
+                                                    const dbBatch = getDatabaseBatch(transfer.tokenId);
+                                                    return (
+                                                        <TableRow key={transfer._id}>
+                                                            <TableCell>
+                                                                <Badge
+                                                                    variant={
+                                                                        transfer.status === 'confirmed' ? 'default' :
+                                                                            transfer.status === 'pending' ? 'secondary' :
+                                                                                'destructive'
+                                                                    }
+                                                                    className="text-xs"
+                                                                >
+                                                                    {transfer.status}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="flex flex-col">
+                                                                    <span className="font-medium">Token #{transfer.tokenId}</span>
+                                                                    {dbBatch && (
+                                                                        <span className="text-xs text-muted-foreground">
+                                                                            Batch #{dbBatch.batchNumber}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="font-mono text-sm">
+                                                                    {formatAddress(transfer.fromAddress)}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="font-mono text-sm">
+                                                                    {formatAddress(transfer.toAddress)}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="flex flex-col">
+                                                                    <span className="font-medium">{transfer.quantity}</span>
+                                                                    {dbBatch && (
+                                                                        <span className="text-xs text-muted-foreground">
+                                                                            {(dbBatch.carbonFootprint / 1000).toFixed(2)} tons CO₂
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-sm">
+                                                                        {format(new Date(transfer.createdAt), 'MMM dd, yyyy')}
+                                                                    </span>
+                                                                    <span className="text-xs text-muted-foreground">
+                                                                        {format(new Date(transfer.createdAt), 'HH:mm')}
+                                                                    </span>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="flex items-center gap-2">
+                                                                    {transfer.reason && (
+                                                                        <TooltipProvider>
+                                                                            <Tooltip>
+                                                                                <TooltipTrigger asChild>
+                                                                                    <Button
+                                                                                        variant="ghost"
+                                                                                        size="sm"
+                                                                                        className="h-8 w-8 p-0"
+                                                                                    >
+                                                                                        <Eye className="h-3 w-3" />
+                                                                                    </Button>
+                                                                                </TooltipTrigger>
+                                                                                <TooltipContent>
+                                                                                    <p className="max-w-xs">{transfer.reason}</p>
+                                                                                </TooltipContent>
+                                                                            </Tooltip>
+                                                                        </TooltipProvider>
+                                                                    )}
+                                                                    <TooltipProvider>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger asChild>
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    onClick={() => window.open(getExplorerUrl(transfer.txHash), '_blank')}
+                                                                                    className="h-8 w-8 p-0"
+                                                                                >
+                                                                                    <ExternalLink className="h-3 w-3" />
+                                                                                </Button>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>
+                                                                                <p>View on Explorer</p>
+                                                                            </TooltipContent>
+                                                                        </Tooltip>
+                                                                    </TooltipProvider>
+                                                                </div>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            )}
+                        </TabsContent>
+                    </Tabs>
+                </CardContent>
+            </Card>
 
             {/* Transfer Modal */}
             <Dialog open={showTransferModal} onOpenChange={setShowTransferModal}>
