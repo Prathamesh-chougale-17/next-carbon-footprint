@@ -20,6 +20,7 @@ interface SupplyChainLocation {
   transport?: 'Road' | 'Sea' | 'Rail' | 'Air';
   carbonFootprint?: number;
   quantity?: number;
+  parentLocation?: { lat: number; lng: number };
 }
 
 interface ComponentDetails {
@@ -70,11 +71,15 @@ async function collectSupplyChainLocations(
           type: componentProduct.isRawMaterial ? 'Raw Material' : 'Component',
           carbonFootprint: componentCO2,
           quantity: componentQuantity,
+          parentLocation: plant.location?.coordinates ? {
+            lat: plant.location.coordinates.latitude,
+            lng: plant.location.coordinates.longitude
+          } : undefined,
         });
 
         // Recursively add sub-component locations
         if (component.components && component.components.length > 0) {
-          const subLocations = await collectSupplyChainLocations(
+          const subLocations = await collectSupplyChainLocationsRecursive(
             component.batch,
             componentProduct,
             component.plant,
@@ -82,7 +87,77 @@ async function collectSupplyChainLocations(
             templatesCollection,
             plantsCollection
           );
-          locations.push(...subLocations);
+          // Filter out duplicates and add new locations
+          subLocations.forEach(subLoc => {
+            const exists = locations.some(loc =>
+              loc.lat === subLoc.lat && loc.lng === subLoc.lng && loc.name === subLoc.name
+            );
+            if (!exists) {
+              locations.push(subLoc);
+            }
+          });
+        }
+      }
+    }
+  }
+
+  return locations;
+}
+
+// Recursive function to collect sub-component locations with proper parent relationships
+async function collectSupplyChainLocationsRecursive(
+  batch: ProductBatch,
+  product: ProductTemplate,
+  plant: Plant,
+  components: ComponentDetails[],
+  templatesCollection: any,
+  plantsCollection: any
+): Promise<SupplyChainLocation[]> {
+  const locations: SupplyChainLocation[] = [];
+
+  // Recursively collect component locations
+  for (const component of components) {
+    if (component.plant.location?.coordinates) {
+      const componentProduct = await templatesCollection.findOne({
+        _id: new ObjectId(component.batch.templateId)
+      });
+
+      if (componentProduct) {
+        const componentQuantity = batch.components?.find(c => c.tokenId === component.batch.tokenId)?.quantity || 0;
+        const componentCO2 = (component.batch.carbonFootprint / 1000) * componentQuantity / component.batch.quantity;
+
+        locations.push({
+          lat: component.plant.location.coordinates.latitude,
+          lng: component.plant.location.coordinates.longitude,
+          name: `${component.plant.plantName} - ${componentProduct.templateName}`,
+          type: componentProduct.isRawMaterial ? 'Raw Material' : 'Component',
+          carbonFootprint: componentCO2,
+          quantity: componentQuantity,
+          parentLocation: plant.location?.coordinates ? {
+            lat: plant.location.coordinates.latitude,
+            lng: plant.location.coordinates.longitude
+          } : undefined,
+        });
+
+        // Recursively add sub-component locations
+        if (component.components && component.components.length > 0) {
+          const subLocations = await collectSupplyChainLocationsRecursive(
+            component.batch,
+            componentProduct,
+            component.plant,
+            component.components,
+            templatesCollection,
+            plantsCollection
+          );
+          // Filter out duplicates and add new locations
+          subLocations.forEach(subLoc => {
+            const exists = locations.some(loc =>
+              loc.lat === subLoc.lat && loc.lng === subLoc.lng && loc.name === subLoc.name
+            );
+            if (!exists) {
+              locations.push(subLoc);
+            }
+          });
         }
       }
     }

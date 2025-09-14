@@ -135,8 +135,17 @@ const ProductTreeViewer: React.FC<ProductTreeViewerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Transform API data to tree structure
-  const transformToTree = useCallback((data: ProductTreeData): TreeNode => {
+  // Fetch component data recursively
+  const fetchComponentData = useCallback(async (tokenId: number): Promise<ProductTreeData> => {
+    const response = await fetch(`/api/tokens/${tokenId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch component data for token ${tokenId}: ${response.statusText}`);
+    }
+    return response.json();
+  }, []);
+
+  // Transform API data to tree structure recursively
+  const transformToTree = useCallback(async (data: ProductTreeData): Promise<TreeNode> => {
     const rootNode: TreeNode = {
       name: data.product.templateName,
       attributes: {
@@ -159,33 +168,46 @@ const ProductTreeViewer: React.FC<ProductTreeViewerProps> = ({
       children: [],
     };
 
-    // Add components as children
+    // Recursively fetch and add components as children
     if (data.components && data.components.length > 0) {
-      rootNode.children = data.components.map((component) => ({
-        name: String(component.product.templateName),
-        attributes: {
-          type: (component.product.isRawMaterial as boolean) ? "raw-material" : "component",
-          tokenId: component.batch.tokenId as number,
-          batchNumber: String(component.batch.batchNumber),
-          quantity: component.batch.quantity as number,
-          carbonFootprint: component.batch.carbonFootprint as number,
-          carbonFootprintPerUnit: (component.product.specifications as { carbonFootprintPerUnit: number }).carbonFootprintPerUnit,
-          weight: (component.product.specifications as { weight: number }).weight,
-          plantName: String(component.plant.plantName),
-          location: `${(component.plant.location as { city: string }).city}, ${(component.plant.location as { country: string }).country}`,
-          productionDate: String(component.batch.productionDate),
-          isRawMaterial: component.product.isRawMaterial as boolean,
-          imageUrl: String(component.product.imageUrl),
-          description: String(component.product.description),
-          materials: (component.product.specifications as { materials: string[] }).materials.join(", "),
-          txHash: String(component.batch.txHash),
-        },
-        children: [],
-      }));
+      rootNode.children = await Promise.all(
+        data.components.map(async (component) => {
+          try {
+            // Fetch the full component data including its own components
+            const componentData = await fetchComponentData(component.batch.tokenId as number);
+            // Recursively transform the component data
+            return await transformToTree(componentData);
+          } catch (error) {
+            console.error(`Error fetching component ${component.batch.tokenId}:`, error);
+            // Fallback to basic component data if fetch fails
+            return {
+              name: String(component.product.templateName),
+              attributes: {
+                type: (component.product.isRawMaterial as boolean) ? "raw-material" : "component",
+                tokenId: component.batch.tokenId as number,
+                batchNumber: String(component.batch.batchNumber),
+                quantity: component.batch.quantity as number,
+                carbonFootprint: component.batch.carbonFootprint as number,
+                carbonFootprintPerUnit: (component.product.specifications as { carbonFootprintPerUnit: number }).carbonFootprintPerUnit,
+                weight: (component.product.specifications as { weight: number }).weight,
+                plantName: String(component.plant.plantName),
+                location: `${(component.plant.location as { city: string }).city}, ${(component.plant.location as { country: string }).country}`,
+                productionDate: String(component.batch.productionDate),
+                isRawMaterial: component.product.isRawMaterial as boolean,
+                imageUrl: String(component.product.imageUrl),
+                description: String(component.product.description),
+                materials: (component.product.specifications as { materials: string[] }).materials.join(", "),
+                txHash: String(component.batch.txHash),
+              },
+              children: [],
+            };
+          }
+        })
+      );
     }
 
     return rootNode;
-  }, []);
+  }, [fetchComponentData]);
 
   // Fetch product data
   useEffect(() => {
@@ -202,7 +224,7 @@ const ProductTreeViewer: React.FC<ProductTreeViewerProps> = ({
         }
 
         const data: ProductTreeData = await response.json();
-        const tree = transformToTree(data);
+        const tree = await transformToTree(data);
         setTreeData(tree);
       } catch (err) {
         console.error("Error fetching product data:", err);

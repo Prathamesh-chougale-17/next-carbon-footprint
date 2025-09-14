@@ -22,6 +22,7 @@ interface Location {
     transport?: 'Road' | 'Sea' | 'Rail' | 'Air';
     carbonFootprint?: number;
     quantity?: number;
+    parentLocation?: { lat: number; lng: number }; // Add parent location for connections
 }
 
 interface SupplyChainMapProps {
@@ -89,45 +90,68 @@ export default function SupplyChainMap({
 
         // Add Connecting Lines & Midpoint Transport Icons
         if (showLines && locations.length > 1) {
-            locations.forEach((_loc, i) => {
-                if (i === locations.length - 1) return;
+            locations.forEach((loc) => {
+                // If this location has a parent, connect to it
+                if (loc.parentLocation) {
+                    const start = fromLonLat([loc.parentLocation.lng, loc.parentLocation.lat]);
+                    const end = fromLonLat([loc.lng, loc.lat]);
 
-                const start = fromLonLat([locations[i].lng, locations[i].lat]);
-                const end = fromLonLat([locations[i + 1].lng, locations[i + 1].lat]);
+                    // Add connecting lines with different colors based on type
+                    const lineFeature = new Feature(new LineString([start, end]));
+                    let lineColor = '#888';
+                    let lineWidth = 2.5;
 
-                // Add connecting lines
-                const lineFeature = new Feature(new LineString([start, end]));
-                lineFeature.setStyle(
-                    new Style({
-                        stroke: new Stroke({
-                            color: '#888',
-                            width: 2.5,
-                            lineDash: [10, 8],
-                        }),
-                    })
-                );
-                transportSource.addFeature(lineFeature);
+                    // Different colors for different component types
+                    switch (loc.type) {
+                        case 'Raw Material':
+                            lineColor = '#10b981'; // emerald
+                            lineWidth = 3;
+                            break;
+                        case 'Component':
+                            lineColor = '#3b82f6'; // blue
+                            lineWidth = 2.5;
+                            break;
+                        case 'Final Product':
+                            lineColor = '#6366f1'; // indigo
+                            lineWidth = 4;
+                            break;
+                        default:
+                            lineColor = '#6b7280'; // gray
+                            break;
+                    }
 
-                // Add midpoint transport icons
-                const midpoint = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2];
-                const transportFeature = new Feature(new Point(midpoint));
-                transportFeature.setStyle(
-                    new Style({
-                        image: new Icon({
-                            src: transportIcons[locations[i + 1].transport || 'Road'],
-                            scale: 0.7,
-                            anchor: [0.5, 0.5],
-                        }),
-                        text: new Text({
-                            text: locations[i + 1].transport,
-                            offsetY: 25,
-                            font: 'bold 11px Arial',
-                            fill: new Fill({ color: '#000' }),
-                            stroke: new Stroke({ color: '#fff', width: 3 }),
-                        }),
-                    })
-                );
-                transportSource.addFeature(transportFeature);
+                    lineFeature.setStyle(
+                        new Style({
+                            stroke: new Stroke({
+                                color: lineColor,
+                                width: lineWidth,
+                                lineDash: [10, 8],
+                            }),
+                        })
+                    );
+                    transportSource.addFeature(lineFeature);
+
+                    // Add midpoint transport icons
+                    const midpoint = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2];
+                    const transportFeature = new Feature(new Point(midpoint));
+                    transportFeature.setStyle(
+                        new Style({
+                            image: new Icon({
+                                src: transportIcons[loc.transport || 'Road'],
+                                scale: 0.7,
+                                anchor: [0.5, 0.5],
+                            }),
+                            text: new Text({
+                                text: loc.transport || 'Road',
+                                offsetY: 25,
+                                font: 'bold 11px Arial',
+                                fill: new Fill({ color: '#000' }),
+                                stroke: new Stroke({ color: '#fff', width: 3 }),
+                            }),
+                        })
+                    );
+                    transportSource.addFeature(transportFeature);
+                }
             });
         }
 
