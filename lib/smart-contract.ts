@@ -93,8 +93,8 @@ export class SmartContractService {
         throw new Error('Carbon footprint must be an integer value (in kg).');
       }
 
-      // Prepare metadata URI (for now, use a placeholder)
-      const metadataURI = `https://api.carbontrack.com/metadata/batch/${params.batchNumber}`;
+      // Use the metadata URI from params, or fallback to a placeholder
+      const metadataURI = params.metadataURI || `https://api.carbontrack.com/metadata/batch/${params.batchNumber}`;
 
       // Estimate gas first
       const gasEstimate = await this.contract.mintBatch.estimateGas(
@@ -112,9 +112,24 @@ export class SmartContractService {
       console.log('Gas estimate:', gasEstimate.toString());
 
       // Execute the minting transaction
-      // Get current gas price
+      // Get current gas price and set minimum for Avalanche Fuji
       const gasPrice = await this.provider!.getFeeData();
       console.log('Gas price data for minting:', gasPrice);
+
+      // Set minimum gas prices for Avalanche Fuji (25 gwei minimum)
+      const minGasPrice = ethers.parseUnits('25', 'gwei'); // 25 gwei minimum
+      const minMaxFeePerGas = ethers.parseUnits('30', 'gwei'); // 30 gwei for max fee
+      const minMaxPriorityFeePerGas = ethers.parseUnits('2', 'gwei'); // 2 gwei for priority
+
+      const finalGasPrice = gasPrice.gasPrice && gasPrice.gasPrice > minGasPrice ? gasPrice.gasPrice : minGasPrice;
+      const finalMaxFeePerGas = gasPrice.maxFeePerGas && gasPrice.maxFeePerGas > minMaxFeePerGas ? gasPrice.maxFeePerGas : minMaxFeePerGas;
+      const finalMaxPriorityFeePerGas = gasPrice.maxPriorityFeePerGas && gasPrice.maxPriorityFeePerGas > minMaxPriorityFeePerGas ? gasPrice.maxPriorityFeePerGas : minMaxPriorityFeePerGas;
+
+      console.log('Final gas configuration for minting:', {
+        gasPrice: ethers.formatUnits(finalGasPrice, 'gwei') + ' gwei',
+        maxFeePerGas: ethers.formatUnits(finalMaxFeePerGas, 'gwei') + ' gwei',
+        maxPriorityFeePerGas: ethers.formatUnits(finalMaxPriorityFeePerGas, 'gwei') + ' gwei'
+      });
 
       const tx = await this.contract.mintBatch(
         params.batchNumber,
@@ -127,10 +142,10 @@ export class SmartContractService {
         metadataURI,
         "0x", // Empty data
         {
-          gasLimit: gasEstimate * 120n / 100n, // Add 20% buffer
-          gasPrice: gasPrice.gasPrice,
-          maxFeePerGas: gasPrice.maxFeePerGas,
-          maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
+          gasLimit: gasEstimate * BigInt(200) / BigInt(100), // Add 100% buffer
+          gasPrice: finalGasPrice,
+          maxFeePerGas: finalMaxFeePerGas,
+          maxPriorityFeePerGas: finalMaxPriorityFeePerGas,
         }
       );
 
@@ -426,9 +441,24 @@ export class SmartContractService {
       );
       console.log('Gas estimate:', gasEstimate.toString());
 
-      // Get current gas price
+      // Get current gas price and set minimum for Avalanche Fuji
       const gasPrice = await this.provider!.getFeeData();
       console.log('Gas price data:', gasPrice);
+
+      // Set minimum gas prices for Avalanche Fuji (25 gwei minimum)
+      const minGasPrice = ethers.parseUnits('25', 'gwei'); // 25 gwei minimum
+      const minMaxFeePerGas = ethers.parseUnits('30', 'gwei'); // 30 gwei for max fee
+      const minMaxPriorityFeePerGas = ethers.parseUnits('2', 'gwei'); // 2 gwei for priority
+
+      const finalGasPrice = gasPrice.gasPrice && gasPrice.gasPrice > minGasPrice ? gasPrice.gasPrice : minGasPrice;
+      const finalMaxFeePerGas = gasPrice.maxFeePerGas && gasPrice.maxFeePerGas > minMaxFeePerGas ? gasPrice.maxFeePerGas : minMaxFeePerGas;
+      const finalMaxPriorityFeePerGas = gasPrice.maxPriorityFeePerGas && gasPrice.maxPriorityFeePerGas > minMaxPriorityFeePerGas ? gasPrice.maxPriorityFeePerGas : minMaxPriorityFeePerGas;
+
+      console.log('Final gas configuration:', {
+        gasPrice: ethers.formatUnits(finalGasPrice, 'gwei') + ' gwei',
+        maxFeePerGas: ethers.formatUnits(finalMaxFeePerGas, 'gwei') + ' gwei',
+        maxPriorityFeePerGas: ethers.formatUnits(finalMaxPriorityFeePerGas, 'gwei') + ' gwei'
+      });
 
       // Execute transfer with proper gas configuration
       const tx = await this.contract.transferToPartner(
@@ -438,10 +468,10 @@ export class SmartContractService {
         reason,
         '', // metadata
         {
-          gasLimit: gasEstimate * 120n / 100n, // Add 20% buffer
-          gasPrice: gasPrice.gasPrice,
-          maxFeePerGas: gasPrice.maxFeePerGas,
-          maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
+          gasLimit: gasEstimate * BigInt(120) / BigInt(100), // Add 20% buffer
+          gasPrice: finalGasPrice,
+          maxFeePerGas: finalMaxFeePerGas,
+          maxPriorityFeePerGas: finalMaxPriorityFeePerGas,
         }
       );
 
@@ -477,6 +507,91 @@ export class SmartContractService {
         throw new Error('Network error. Please check your connection and try again.');
       } else {
         throw new Error(`Failed to transfer tokens: ${error.message}`);
+      }
+    }
+  }
+
+  // Burn component tokens during batch creation
+  async burnComponentTokens(tokenId: number, quantity: number, reason: string = "Component Consumption") {
+    if (!this.contract || !this.provider || !this.signer) {
+      throw new Error('Smart contract not initialized. Please connect your wallet first.');
+    }
+
+    try {
+      console.log(`Burning ${quantity} tokens of Token ID ${tokenId} for reason: ${reason}`);
+
+      // Estimate gas for the burn operation
+      const gasEstimate = await this.contract.burnComponentTokens.estimateGas(
+        tokenId,
+        quantity,
+        reason
+      );
+      console.log('Estimated gas for burning:', gasEstimate.toString());
+
+      // Get current gas prices and set minimum for Avalanche Fuji
+      const gasPrice = await this.provider.getFeeData();
+      console.log('Gas price data for burning:', gasPrice);
+
+      // Set minimum gas prices for Avalanche Fuji (25 gwei minimum)
+      const minGasPrice = ethers.parseUnits('25', 'gwei'); // 25 gwei minimum
+      const minMaxFeePerGas = ethers.parseUnits('30', 'gwei'); // 30 gwei for max fee
+      const minMaxPriorityFeePerGas = ethers.parseUnits('2', 'gwei'); // 2 gwei for priority
+
+      const finalGasPrice = gasPrice.gasPrice && gasPrice.gasPrice > minGasPrice ? gasPrice.gasPrice : minGasPrice;
+      const finalMaxFeePerGas = gasPrice.maxFeePerGas && gasPrice.maxFeePerGas > minMaxFeePerGas ? gasPrice.maxFeePerGas : minMaxFeePerGas;
+      const finalMaxPriorityFeePerGas = gasPrice.maxPriorityFeePerGas && gasPrice.maxPriorityFeePerGas > minMaxPriorityFeePerGas ? gasPrice.maxPriorityFeePerGas : minMaxPriorityFeePerGas;
+
+      console.log('Final gas configuration for burning:', {
+        gasPrice: ethers.formatUnits(finalGasPrice, 'gwei') + ' gwei',
+        maxFeePerGas: ethers.formatUnits(finalMaxFeePerGas, 'gwei') + ' gwei',
+        maxPriorityFeePerGas: ethers.formatUnits(finalMaxPriorityFeePerGas, 'gwei') + ' gwei'
+      });
+
+      // Execute the burn transaction
+      const tx = await this.contract.burnComponentTokens(
+        tokenId,
+        quantity,
+        reason,
+        {
+          gasLimit: gasEstimate * BigInt(120) / BigInt(100), // Add 20% buffer
+          gasPrice: finalGasPrice,
+          maxFeePerGas: finalMaxFeePerGas,
+          maxPriorityFeePerGas: finalMaxPriorityFeePerGas,
+        }
+      );
+
+      console.log('Burn transaction sent:', tx.hash);
+
+      // Wait for confirmation
+      const receipt = await tx.wait();
+
+      if (!receipt) {
+        throw new Error('Burn failed - no receipt received');
+      }
+
+      console.log('Burn confirmed:', receipt);
+
+      return {
+        txHash: tx.hash,
+        gasUsed: receipt.gasUsed.toString(),
+      };
+
+    } catch (error: any) {
+      console.error('Failed to burn component tokens:', error);
+
+      // Provide user-friendly error messages
+      if (error.code === 'INSUFFICIENT_FUNDS') {
+        throw new Error('Insufficient funds for gas. Please add AVAX to your wallet.');
+      } else if (error.code === 'USER_REJECTED') {
+        throw new Error('Burn was rejected by user.');
+      } else if (error.message.includes('Insufficient balance')) {
+        throw new Error('Insufficient component token balance for burning.');
+      } else if (error.message.includes('transaction underpriced') || error.message.includes('gas fee cap')) {
+        throw new Error('Gas fee too low. Please try again - the network may be congested.');
+      } else if (error.message.includes('UNKNOWN_ERROR')) {
+        throw new Error('Network error. Please check your connection and try again.');
+      } else {
+        throw new Error(`Failed to burn component tokens: ${error.message}`);
       }
     }
   }

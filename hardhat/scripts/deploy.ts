@@ -33,7 +33,17 @@ async function main() {
   console.log("👤 Owner:", owner);
   console.log("🆔 Current Token ID Counter:", currentTokenId.toString());
   console.log("⏸️  Is Paused:", isPaused);
-  console.log("🌐 Base URI:", await supplyChainTokens.uri(0));
+  
+  // Only try to get URI if tokens exist
+  try {
+    if (currentTokenId.gt(0)) {
+      console.log("🌐 Sample URI:", await supplyChainTokens.uri(0));
+    } else {
+      console.log("🌐 No tokens minted yet - URI function ready");
+    }
+  } catch (error) {
+    console.log("🌐 URI function ready (no tokens minted yet)");
+  }
 
   console.log("\n📋 Deployment Summary:");
   console.log("===================");

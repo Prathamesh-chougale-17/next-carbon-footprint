@@ -124,6 +124,9 @@ export default function ProductTemplatesPage() {
     isRawMaterial: false,
     manufacturerAddress: ""
   });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
 
   const fetchTemplates = useCallback(async () => {
     if (!address) return;
@@ -198,6 +201,53 @@ export default function ProductTemplatesPage() {
     }));
   };
 
+  // Handle image selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+    }
+  };
+
+  // Upload image to server
+  const uploadImage = async (): Promise<string | null> => {
+    if (!selectedImage) return null;
+
+    try {
+      const formData = new FormData();
+      formData.append('image', selectedImage);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return result.imageUrl;
+      } else {
+        throw new Error('Failed to upload image');
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      throw error;
+    }
+  };
+
+  // Clear image selection
+  const clearImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    setUploadedImageUrl(null);
+    // Reset file input
+    const fileInput = document.getElementById('image-upload') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
+  };
+
   const handleBatchInputChange = (field: string, value: string) => {
     setBatchData((prev) => ({
       ...prev,
@@ -246,6 +296,11 @@ export default function ProductTemplatesPage() {
     }, 0);
 
     return baseEmissions + (componentEmissions / 1000); // Convert from kg to tons
+  };
+
+  // Get product template by templateId
+  const getProductTemplateByTemplateId = (templateId: string) => {
+    return templates.find(template => template._id?.toString() === templateId);
   };
 
   const openBatchModal = async (template: ProductTemplate) => {
@@ -408,10 +463,24 @@ export default function ProductTemplatesPage() {
     setIsLoading(true);
 
     try {
+      // Upload image first if selected
+      let imageUrl = null;
+      if (selectedImage) {
+        try {
+          imageUrl = await uploadImage();
+        } catch (error) {
+          console.error('Failed to upload image:', error);
+          toast.error('Failed to upload image. Please try again.');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const templateData = {
         templateName: formData.templateName,
         description: formData.description,
         category: formData.category,
+        imageUrl: imageUrl,
         specifications: {
           weight: parseFloat(formData.weight),
           dimensions: formData.length && formData.width && formData.height ? {
@@ -453,6 +522,7 @@ export default function ProductTemplatesPage() {
           isRawMaterial: false,
           manufacturerAddress: ""
         });
+        clearImage();
         fetchTemplates();
       } else {
         toast.error(result.error || "Failed to create template");
@@ -656,6 +726,41 @@ export default function ProductTemplatesPage() {
                 </div>
               </div>
 
+              {/* Image Upload Section */}
+              <div className="space-y-2">
+                <Label htmlFor="image-upload">Product Image</Label>
+                <div className="space-y-3">
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="cursor-pointer"
+                  />
+                  {imagePreview && (
+                    <div className="relative inline-block">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-32 h-32 object-cover rounded-lg border"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                        onClick={clearImage}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Upload a product image (max 5MB). This will be displayed in wallets as the token image.
+                  </p>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="description">Description *</Label>
                 <Textarea
@@ -805,7 +910,16 @@ export default function ProductTemplatesPage() {
           >
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{template.templateName}</CardTitle>
+                <div className="flex items-center gap-3">
+                  {template.imageUrl && (
+                    <img
+                      src={template.imageUrl}
+                      alt={template.templateName}
+                      className="w-12 h-12 object-cover rounded-lg border"
+                    />
+                  )}
+                  <CardTitle className="text-lg">{template.templateName}</CardTitle>
+                </div>
                 <Badge variant={template.isActive ? "default" : "secondary"}>
                   {template.isActive ? "Active" : "Inactive"}
                 </Badge>
@@ -1012,7 +1126,9 @@ export default function ProductTemplatesPage() {
                       onValueChange={(value) => {
                         const token = inventoryTokens.find(t => t.tokenId.toString() === value);
                         if (token) {
-                          addComponent(token.tokenId, `Token #${token.tokenId}`, token.balance);
+                          const productTemplate = getProductTemplateByTemplateId(token.batchInfo.templateId);
+                          const productName = productTemplate ? productTemplate.templateName : `Token #${token.tokenId}`;
+                          addComponent(token.tokenId, productName, token.balance);
                         }
                       }}
                     >
@@ -1022,16 +1138,21 @@ export default function ProductTemplatesPage() {
                       <SelectContent>
                         {inventoryTokens
                           .filter(token => !components.some(comp => comp.tokenId === token.tokenId))
-                          .map((token) => (
-                            <SelectItem key={token.tokenId} value={token.tokenId.toString()}>
-                              <div className="flex flex-col">
-                                <span className="font-medium">Token #{token.tokenId}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  Available: {token.balance}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
+                          .map((token) => {
+                            const productTemplate = getProductTemplateByTemplateId(token.batchInfo.templateId);
+                            const productName = productTemplate ? productTemplate.templateName : `Token #${token.tokenId}`;
+
+                            return (
+                              <SelectItem key={token.tokenId} value={token.tokenId.toString()}>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{productName}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    Token #{token.tokenId} • Available: {token.balance}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
                       </SelectContent>
                     </Select>
                     <Button
@@ -1061,7 +1182,12 @@ export default function ProductTemplatesPage() {
                       <div key={`${component.tokenId}-${index}`} className="flex items-center gap-2 p-2 border rounded-lg">
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium">{component.tokenName}</span>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium">{component.tokenName}</span>
+                              <span className="text-xs text-muted-foreground">
+                                Token #{component.tokenId}
+                              </span>
+                            </div>
                             <span className="text-xs text-muted-foreground">
                               Available: {component.availableBalance}
                             </span>
@@ -1151,7 +1277,7 @@ export default function ProductTemplatesPage() {
                           return (
                             <div key={index} className="flex justify-between text-xs">
                               <span className="text-muted-foreground">
-                                Token #{component.tokenId} ({component.quantity} units):
+                                {component.tokenName} ({component.quantity} units):
                               </span>
                               <span>{componentTotalEmissions.toFixed(3)} tons CO₂</span>
                             </div>

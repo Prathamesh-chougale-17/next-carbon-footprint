@@ -11,7 +11,7 @@ export async function PUT(
   try {
     const { id: batchId } = await params;
     const body = await request.json();
-    const { tokenId, txHash, blockNumber } = body;
+    const { tokenId, txHash, blockNumber, consumedComponents } = body;
 
     // Validate required fields
     if (!tokenId || !txHash) {
@@ -33,17 +33,40 @@ export async function PUT(
       query = { batchNumber: batchId };
     }
 
+    // Build update object
+    const updateFields: any = {
+      tokenId: parseInt(tokenId),
+      tokenContractAddress: '0x6f70264A4f3608FFa8Ff3ED5C6a1c4542D79fb88', // Updated contract address
+      txHash,
+      blockNumber: blockNumber ? parseInt(blockNumber) : undefined,
+      updatedAt: new Date(),
+    };
+
+    // Update component consumption status if provided
+    if (consumedComponents && Array.isArray(consumedComponents)) {
+      // Get the current batch to update components
+      const currentBatch = await collection.findOne(query);
+      if (currentBatch && currentBatch.components) {
+        const updatedComponents = currentBatch.components.map((component: any) => {
+          const consumedComponent = consumedComponents.find((c: any) => c.tokenId === component.tokenId);
+          if (consumedComponent) {
+            return {
+              ...component,
+              consumed: true,
+              burnTxHash: consumedComponent.burnTxHash
+            };
+          }
+          return component;
+        });
+        updateFields.components = updatedComponents;
+      }
+    }
+
     // Update batch with token information
     const result = await collection.updateOne(
       query,
       {
-        $set: {
-          tokenId: parseInt(tokenId),
-          tokenContractAddress: '0xD6B231A6605490E83863D3B71c1C01e4E5B1212D', // Contract address
-          txHash,
-          blockNumber: blockNumber ? parseInt(blockNumber) : undefined,
-          updatedAt: new Date(),
-        },
+        $set: updateFields,
       }
     );
 

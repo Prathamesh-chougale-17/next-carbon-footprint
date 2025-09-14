@@ -334,8 +334,27 @@ export default function InventoryPage() {
         return (
             <Card className="hover:shadow-md transition-shadow">
                 <CardHeader>
-                    <div className="flex items-start justify-between">
-                        <div className="flex-1">
+                    <div className="flex items-start gap-4">
+                        {/* Product Image */}
+                        <div className="flex-shrink-0">
+                            <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-muted to-muted/50 border shadow-sm">
+                                {productTemplate?.imageUrl ? (
+                                    <img
+                                        src={productTemplate.imageUrl}
+                                        alt={productTemplate.templateName || 'Product'}
+                                        className="w-full h-full object-cover transition-transform hover:scale-105"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                        <Package className="h-6 w-6 text-muted-foreground/60" />
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
+                            </div>
+                        </div>
+
+                        {/* Token Info */}
+                        <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                                 <CardTitle className="text-lg">Token #{token.tokenId}</CardTitle>
                                 <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
@@ -346,7 +365,7 @@ export default function InventoryPage() {
                             <CardDescription className="mt-1">
                                 Batch #{token.batchInfo.batchNumber}
                                 {productTemplate && (
-                                    <span className="block text-xs text-muted-foreground mt-1">
+                                    <span className="block text-xs text-muted-foreground mt-1 line-clamp-2">
                                         {productTemplate.templateName}
                                     </span>
                                 )}

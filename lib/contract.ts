@@ -1,7 +1,7 @@
 // Smart Contract Configuration
 export const CONTRACT_CONFIG = {
   // Deployed contract address on Avalanche Fuji testnet
-  ADDRESS: "0xD6B231A6605490E83863D3B71c1C01e4E5B1212D",
+  ADDRESS: "0x6f70264A4f3608FFa8Ff3ED5C6a1c4542D79fb88",
 
   // Network configuration
   NETWORK: {
@@ -287,6 +287,52 @@ export const CONTRACT_CONFIG = {
       "name": "transferToPartner",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+
+    // burnComponentTokens function
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "quantity",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "reason",
+          "type": "string"
+        }
+      ],
+      "name": "burnComponentTokens",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+
+    // uri function for ERC-1155 metadata
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "name": "uri",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     }
   ] as const,

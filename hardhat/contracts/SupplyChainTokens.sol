@@ -219,6 +219,54 @@ contract SupplyChainTokens is ERC1155, Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
+     * @dev Burn component tokens during batch creation
+     * @param tokenId Token ID of the component to burn
+     * @param quantity Amount to burn
+     * @param reason Reason for burning (e.g., "Component Consumption")
+     */
+    function burnComponentTokens(
+        uint256 tokenId,
+        uint256 quantity,
+        string memory reason
+    ) external whenNotPaused nonReentrant {
+        require(
+            tokenExists[tokenId],
+            "SupplyChainTokens: Token does not exist"
+        );
+        require(
+            quantity > 0,
+            "SupplyChainTokens: Quantity must be greater than 0"
+        );
+        require(
+            balanceOf(msg.sender, tokenId) >= quantity,
+            "SupplyChainTokens: Insufficient balance"
+        );
+
+        // Burn the tokens
+        _burn(msg.sender, tokenId, quantity);
+
+        // Record the burn in transfer history
+        transferHistory[tokenId].push(
+            TransferRecord({
+                from: msg.sender,
+                to: address(0), // Zero address indicates burning
+                quantity: quantity,
+                timestamp: block.timestamp,
+                reason: reason,
+                metadata: ""
+            })
+        );
+
+        emit BatchTransferred(
+            tokenId,
+            msg.sender,
+            address(0),
+            quantity,
+            reason
+        );
+    }
+
+    /**
      * @dev Get batch information
      * @param tokenId Token ID
      * @return BatchInfo struct containing all batch details
@@ -246,6 +294,19 @@ contract SupplyChainTokens is ERC1155, Ownable, Pausable, ReentrancyGuard {
             "SupplyChainTokens: Token does not exist"
         );
         return transferHistory[tokenId];
+    }
+
+    /**
+     * @dev Returns the URI for a given token ID
+     * @param tokenId Token ID
+     * @return URI string for the token metadata
+     */
+    function uri(uint256 tokenId) public view override returns (string memory) {
+        require(
+            tokenExists[tokenId],
+            "SupplyChainTokens: Token does not exist"
+        );
+        return batches[tokenId].metadataURI;
     }
 
     /**

@@ -23,6 +23,7 @@ export interface ProductTemplate {
   templateName: string;
   description: string;
   category: string;
+  imageUrl?: string; // URL to the product image
   specifications: {
     weight: number;
     dimensions?: {
@@ -46,6 +47,8 @@ export interface BatchComponent {
   tokenName: string;
   quantity: number;
   carbonFootprint: number; // Total carbon footprint for this component quantity
+  consumed?: boolean; // Track if component tokens have been consumed/burned
+  burnTxHash?: string; // Transaction hash of the burn operation
 }
 
 export interface ProductBatch {

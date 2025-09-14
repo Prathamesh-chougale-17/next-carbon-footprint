@@ -208,10 +208,36 @@ export default function BatchesPage() {
                 expiryDate: selectedBatch.expiryDate ? Math.floor(new Date(selectedBatch.expiryDate).getTime() / 1000) : 0,
                 carbonFootprint: totalCarbonFootprintKg,
                 plantId: selectedBatch.plantId.toString(),
-                metadataURI: `https://api.carbontrack.com/metadata/batch/${batchNumber}`
+                metadataURI: `${window.location.origin}/api/metadata/${batchNumber}`
             };
 
             console.log('Minting batch tokens with params:', mintParams);
+
+            // Burn component tokens if this batch uses components
+            let consumedComponents: any[] = [];
+            if (selectedBatch.components && selectedBatch.components.length > 0) {
+                console.log('Burning component tokens:', selectedBatch.components);
+
+                for (const component of selectedBatch.components) {
+                    console.log(`Burning ${component.quantity} tokens of Token ID ${component.tokenId}`);
+
+                    const burnResult = await smartContractService.burnComponentTokens(
+                        component.tokenId,
+                        component.quantity,
+                        `Component consumption for batch ${selectedBatch.batchNumber}`
+                    );
+
+                    console.log(`Burned component tokens:`, burnResult);
+
+                    // Track consumed component for database update
+                    consumedComponents.push({
+                        tokenId: component.tokenId,
+                        burnTxHash: burnResult.txHash
+                    });
+                }
+
+                toast.success(`Burned ${selectedBatch.components.length} component token types`);
+            }
 
             // Mint tokens
             const mintResult = await smartContractService.mintBatch(mintParams);
@@ -227,7 +253,8 @@ export default function BatchesPage() {
                 body: JSON.stringify({
                     tokenId: mintResult.tokenId,
                     txHash: mintResult.txHash,
-                    blockNumber: undefined // Will be filled later
+                    blockNumber: undefined, // Will be filled later
+                    consumedComponents: consumedComponents
                 }),
             });
 
@@ -397,16 +424,39 @@ export default function BatchesPage() {
                         {unmintedBatches.map((batch) => (
                             <Card key={batch._id?.toString()} className="border-orange-200">
                                 <CardHeader>
-                                    <div className="flex items-center justify-between">
-                                        <CardTitle className="text-lg">Batch #{batch.batchNumber}</CardTitle>
-                                        <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
-                                            <Clock className="h-3 w-3 mr-1" />
-                                            Pending
-                                        </Badge>
+                                    <div className="flex items-start gap-4">
+                                        {/* Product Image */}
+                                        <div className="flex-shrink-0">
+                                            <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-muted to-muted/50 border shadow-sm">
+                                                {batch.template?.imageUrl ? (
+                                                    <img
+                                                        src={batch.template.imageUrl}
+                                                        alt={batch.template?.templateName || 'Product'}
+                                                        className="w-full h-full object-cover transition-transform hover:scale-105"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <Package className="h-6 w-6 text-muted-foreground/60" />
+                                                    </div>
+                                                )}
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
+                                            </div>
+                                        </div>
+
+                                        {/* Batch Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <CardTitle className="text-lg">Batch #{batch.batchNumber}</CardTitle>
+                                                <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
+                                                    <Clock className="h-3 w-3 mr-1" />
+                                                    Pending
+                                                </Badge>
+                                            </div>
+                                            <CardDescription className="line-clamp-2">
+                                                {batch.template?.templateName || 'Unknown Template'}
+                                            </CardDescription>
+                                        </div>
                                     </div>
-                                    <CardDescription>
-                                        {batch.template?.templateName || 'Unknown Template'}
-                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     <div className="grid grid-cols-2 gap-2 text-sm">
@@ -456,16 +506,39 @@ export default function BatchesPage() {
                         {mintedBatches.map((batch) => (
                             <Card key={batch._id?.toString()} className="border-green-200">
                                 <CardHeader>
-                                    <div className="flex items-center justify-between">
-                                        <CardTitle className="text-lg">Batch #{batch.batchNumber}</CardTitle>
-                                        <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
-                                            <CheckCircle className="h-3 w-3 mr-1" />
-                                            Minted
-                                        </Badge>
+                                    <div className="flex items-start gap-4">
+                                        {/* Product Image */}
+                                        <div className="flex-shrink-0">
+                                            <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-muted to-muted/50 border shadow-sm">
+                                                {batch.template?.imageUrl ? (
+                                                    <img
+                                                        src={batch.template.imageUrl}
+                                                        alt={batch.template?.templateName || 'Product'}
+                                                        className="w-full h-full object-cover transition-transform hover:scale-105"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <Package className="h-6 w-6 text-muted-foreground/60" />
+                                                    </div>
+                                                )}
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
+                                            </div>
+                                        </div>
+
+                                        {/* Batch Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <CardTitle className="text-lg">Batch #{batch.batchNumber}</CardTitle>
+                                                <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                                    Minted
+                                                </Badge>
+                                            </div>
+                                            <CardDescription className="line-clamp-2">
+                                                {batch.template?.templateName || 'Unknown Template'}
+                                            </CardDescription>
+                                        </div>
                                     </div>
-                                    <CardDescription>
-                                        {batch.template?.templateName || 'Unknown Template'}
-                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     <div className="grid grid-cols-2 gap-2 text-sm">
@@ -525,10 +598,34 @@ export default function BatchesPage() {
             <Dialog open={showMintModal} onOpenChange={setShowMintModal}>
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
-                        <DialogTitle>Mint Blockchain Tokens</DialogTitle>
-                        <DialogDescription>
-                            Mint ERC-1155 tokens for Batch #{selectedBatch?.batchNumber}
-                        </DialogDescription>
+                        <div className="flex items-center gap-4">
+                            {/* Product Image */}
+                            {selectedBatch?.template?.imageUrl && (
+                                <div className="flex-shrink-0">
+                                    <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-muted to-muted/50 border shadow-sm">
+                                        <img
+                                            src={selectedBatch.template.imageUrl}
+                                            alt={selectedBatch.template?.templateName || 'Product'}
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Title and Description */}
+                            <div className="flex-1 min-w-0">
+                                <DialogTitle>Mint Blockchain Tokens</DialogTitle>
+                                <DialogDescription>
+                                    Mint ERC-1155 tokens for Batch #{selectedBatch?.batchNumber}
+                                    {selectedBatch?.template?.templateName && (
+                                        <span className="block text-xs text-muted-foreground mt-1">
+                                            {selectedBatch.template.templateName}
+                                        </span>
+                                    )}
+                                </DialogDescription>
+                            </div>
+                        </div>
                     </DialogHeader>
                     {selectedBatch && (
                         <div className="space-y-4">
@@ -559,11 +656,17 @@ export default function BatchesPage() {
                                         <h5 className="font-medium mb-2 text-sm">Components Used</h5>
                                         <div className="space-y-2">
                                             {selectedBatch.components.map((component, index) => (
-                                                <div key={index} className="flex items-center justify-between p-2 bg-background rounded border text-xs">
+                                                <div key={index} className={`flex items-center justify-between p-2 rounded border text-xs ${component.consumed ? 'bg-green-50 border-green-200' : 'bg-background'
+                                                    }`}>
                                                     <div className="flex items-center gap-2">
-                                                        <Package className="h-3 w-3 text-muted-foreground" />
+                                                        <Package className={`h-3 w-3 ${component.consumed ? 'text-green-600' : 'text-muted-foreground'}`} />
                                                         <span className="font-medium">Token #{component.tokenId}</span>
                                                         <span className="text-muted-foreground">({component.tokenName})</span>
+                                                        {component.consumed && (
+                                                            <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                                                                Consumed
+                                                            </Badge>
+                                                        )}
                                                     </div>
                                                     <div className="flex items-center gap-3 text-muted-foreground">
                                                         <span>{component.quantity} units</span>

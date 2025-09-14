@@ -1,0 +1,11 @@
+{
+  "contractName": "SupplyChainTokens",
+  "address": "0x6f70264A4f3608FFa8Ff3ED5C6a1c4542D79fb88",
+  "deploymentTx": "0x7a6c19f756ce42668aff90e14851d4e48f2032dfcdddf0a7f3c6590f62a7a40e",
+  "gasUsed": "2999659",
+  "network": "fuji",
+  "chainId": "43113",
+  "deployer": "0xCE977C6cB014a07e537E9D6E5ED33840C3688949",
+  "timestamp": "2025-09-14T05:50:31.221Z",
+  "baseURI": "https://api.carbontrack.com/metadata/"
+}

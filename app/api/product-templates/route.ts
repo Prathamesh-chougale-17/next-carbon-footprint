@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
       templateName,
       description,
       category,
+      imageUrl,
       specifications,
       manufacturerAddress,
       isRawMaterial = false
@@ -78,8 +79,8 @@ export async function POST(request: NextRequest) {
     const companiesCollection = db.collection<Company>('companies');
 
     // Check if company exists (case-insensitive)
-    const company = await companiesCollection.findOne({ 
-      walletAddress: manufacturerAddress.toLowerCase() 
+    const company = await companiesCollection.findOne({
+      walletAddress: manufacturerAddress.toLowerCase()
     });
     if (!company) {
       return NextResponse.json(
@@ -105,6 +106,7 @@ export async function POST(request: NextRequest) {
       templateName,
       description,
       category,
+      imageUrl: imageUrl || undefined,
       specifications: {
         weight: specifications.weight,
         dimensions: specifications.dimensions || undefined,
