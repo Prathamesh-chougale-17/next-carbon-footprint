@@ -23,7 +23,7 @@ export class SmartContractService {
 
     try {
       // Get provider and signer
-      this.provider = new ethers.BrowserProvider(window.ethereum);
+      this.provider = new ethers.BrowserProvider((window as any).ethereum);
       this.signer = await this.provider.getSigner();
 
       // Create contract instance
@@ -38,7 +38,7 @@ export class SmartContractService {
       if (Number(network.chainId) !== CONTRACT_CONFIG.NETWORK.chainId) {
         await CONTRACT_HELPERS.switchToFujiNetwork();
         // Re-initialize after network switch
-        this.provider = new ethers.BrowserProvider(window.ethereum);
+        this.provider = new ethers.BrowserProvider((window as any).ethereum);
         this.signer = await this.provider.getSigner();
         this.contract = new ethers.Contract(
           CONTRACT_CONFIG.ADDRESS,

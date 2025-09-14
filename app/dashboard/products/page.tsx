@@ -51,6 +51,7 @@ import {
   Trash2,
   Settings,
   Loader2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ProductTemplate, Plant } from "@/lib/models";
@@ -64,10 +65,35 @@ import {
   EmptyStateSkeleton,
 } from "@/components/ui/loading-skeletons";
 
+interface TokenBalance {
+  tokenId: number;
+  balance: number;
+  batchInfo: {
+    batchNumber: number;
+    manufacturer: string;
+    templateId: string;
+    quantity: number;
+    productionDate: number;
+    expiryDate: number;
+    carbonFootprint: number;
+    plantId: string;
+    metadataURI: string;
+    isActive: boolean;
+  };
+}
+
+interface Component {
+  tokenId: number;
+  tokenName: string;
+  quantity: number;
+  availableBalance: number;
+}
+
 export default function ProductTemplatesPage() {
   const { address } = useWallet();
   const [templates, setTemplates] = useState<ProductTemplate[]>([]);
   const [plants, setPlants] = useState<Plant[]>([]);
+  const [inventoryTokens, setInventoryTokens] = useState<TokenBalance[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isLoadingPlants, setIsLoadingPlants] = useState(false);
@@ -84,6 +110,7 @@ export default function ProductTemplatesPage() {
     quantity: "",
     plantId: ""
   });
+  const [components, setComponents] = useState<Component[]>([]);
   const [formData, setFormData] = useState({
     templateName: "",
     description: "",
@@ -139,10 +166,30 @@ export default function ProductTemplatesPage() {
     }
   }, [address]);
 
+  // Fetch inventory tokens for component selection
+  const fetchInventoryTokens = useCallback(async () => {
+    if (!address) return;
+
+    try {
+      console.log('Fetching inventory tokens for address:', address);
+      // Import smart contract service dynamically
+      const { smartContractService } = await import('@/lib/smart-contract');
+
+      await smartContractService.initialize();
+      const balances = await smartContractService.getUserTokenBalances(address);
+      console.log('Inventory tokens fetched:', balances);
+      setInventoryTokens(balances);
+    } catch (error) {
+      console.error('Error fetching inventory tokens:', error);
+      setInventoryTokens([]);
+    }
+  }, [address]);
+
   useEffect(() => {
     fetchTemplates();
     fetchPlants();
-  }, [fetchTemplates, fetchPlants]);
+    fetchInventoryTokens();
+  }, [fetchTemplates, fetchPlants, fetchInventoryTokens]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({
@@ -158,6 +205,49 @@ export default function ProductTemplatesPage() {
     }));
   };
 
+  // Component management functions
+  const addComponent = (tokenId: number, tokenName: string, availableBalance: number) => {
+    const newComponent: Component = {
+      tokenId,
+      tokenName,
+      quantity: 1,
+      availableBalance
+    };
+    setComponents(prev => [...prev, newComponent]);
+  };
+
+  const removeComponent = (index: number) => {
+    setComponents(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateComponentQuantity = (index: number, quantity: number) => {
+    setComponents(prev => prev.map((comp, i) =>
+      i === index ? { ...comp, quantity } : comp
+    ));
+  };
+
+  // Calculate total carbon footprint including components
+  const calculateTotalEmissions = () => {
+    if (!selectedTemplate || !batchData.quantity) return 0;
+
+    // Base emissions from the product template
+    const baseEmissions = selectedTemplate.specifications.carbonFootprintPerUnit * parseInt(batchData.quantity);
+
+    // Component emissions
+    const componentEmissions = components.reduce((total, component) => {
+      // Find the component token in inventory to get its carbon footprint
+      const componentToken = inventoryTokens.find(token => token.tokenId === component.tokenId);
+      if (componentToken) {
+        // Calculate carbon footprint per unit for this component
+        const carbonPerUnit = componentToken.batchInfo.carbonFootprint / componentToken.batchInfo.quantity;
+        return total + (carbonPerUnit * component.quantity);
+      }
+      return total;
+    }, 0);
+
+    return baseEmissions + (componentEmissions / 1000); // Convert from kg to tons
+  };
+
   const openBatchModal = async (template: ProductTemplate) => {
     setSelectedTemplate(template);
     // Generate a numeric batch number (using timestamp)
@@ -166,10 +256,16 @@ export default function ProductTemplatesPage() {
       quantity: "",
       plantId: ""
     });
+    setComponents([]); // Reset components
 
     // Ensure plants are loaded when opening modal
     if (plants.length === 0) {
       await fetchPlants();
+    }
+
+    // Fetch fresh inventory tokens when opening modal for non-raw materials
+    if (!template.isRawMaterial) {
+      await fetchInventoryTokens();
     }
 
     setShowBatchModal(true);
@@ -183,6 +279,7 @@ export default function ProductTemplatesPage() {
       quantity: "",
       plantId: ""
     });
+    setComponents([]); // Reset components
   };
 
   const openEditDialog = (template: ProductTemplate) => {
@@ -378,6 +475,12 @@ export default function ProductTemplatesPage() {
       return;
     }
 
+    // Validate components for non-raw materials
+    if (!selectedTemplate.isRawMaterial && components.length === 0) {
+      toast.error('Please add at least one component for this product');
+      return;
+    }
+
     const batchNumber = parseInt(batchData.batchNumber);
     const quantity = parseInt(batchData.quantity);
 
@@ -393,15 +496,36 @@ export default function ProductTemplatesPage() {
 
     setIsLoading(true);
     try {
+      // Calculate total carbon footprint including components
+      const totalEmissions = calculateTotalEmissions();
+
+      // Prepare components data if this is a complex batch (non-raw material)
+      let componentsData = undefined;
+      if (!selectedTemplate.isRawMaterial && components.length > 0) {
+        componentsData = components.map(component => {
+          const componentToken = inventoryTokens.find(token => token.tokenId === component.tokenId);
+          const carbonPerUnit = componentToken ? componentToken.batchInfo.carbonFootprint / componentToken.batchInfo.quantity : 0;
+          const componentTotalCarbon = Math.round(carbonPerUnit * component.quantity); // Keep in kg
+
+          return {
+            tokenId: component.tokenId,
+            tokenName: component.tokenName,
+            quantity: component.quantity,
+            carbonFootprint: componentTotalCarbon
+          };
+        });
+      }
+
       // First, create the batch in the database
       const batchPayload = {
         batchNumber: batchData.batchNumber,
         templateId: selectedTemplate._id?.toString(),
         quantity: parseInt(batchData.quantity),
         productionDate: new Date().toISOString(),
-        carbonFootprint: Math.round(selectedTemplate.specifications.carbonFootprintPerUnit * parseInt(batchData.quantity) * 1000), // Convert from tons to kg
+        carbonFootprint: Math.round(totalEmissions * 1000), // Convert from tons to kg
         manufacturerAddress: address,
-        plantId: batchData.plantId
+        plantId: batchData.plantId,
+        components: componentsData
       };
 
       const response = await fetch('/api/product-batches', {
@@ -785,7 +909,7 @@ export default function ProductTemplatesPage() {
 
       {/* Create Batch Modal */}
       <Dialog open={showBatchModal} onOpenChange={setShowBatchModal}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Product Batch</DialogTitle>
             <DialogDescription>
@@ -877,6 +1001,119 @@ export default function ProductTemplatesPage() {
                 )}
               </div>
             </div>
+
+            {/* Component Selection - Only for non-raw materials */}
+            {selectedTemplate && !selectedTemplate.isRawMaterial && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Components</Label>
+                  <div className="flex items-center gap-2">
+                    <Select
+                      onValueChange={(value) => {
+                        const token = inventoryTokens.find(t => t.tokenId.toString() === value);
+                        if (token) {
+                          addComponent(token.tokenId, `Token #${token.tokenId}`, token.balance);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-40 h-8">
+                        <SelectValue placeholder="Select token" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {inventoryTokens
+                          .filter(token => !components.some(comp => comp.tokenId === token.tokenId))
+                          .map((token) => (
+                            <SelectItem key={token.tokenId} value={token.tokenId.toString()}>
+                              <div className="flex flex-col">
+                                <span className="font-medium">Token #{token.tokenId}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  Available: {token.balance}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={inventoryTokens.filter(token =>
+                        !components.some(comp => comp.tokenId === token.tokenId)
+                      ).length === 0}
+                      className="text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                </div>
+
+                {components.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground border-2 border-dashed rounded-lg">
+                    <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No components added</p>
+                    <p className="text-xs">Add components from your inventory</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {components.map((component, index) => (
+                      <div key={`${component.tokenId}-${index}`} className="flex items-center gap-2 p-2 border rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-medium">{component.tokenName}</span>
+                            <span className="text-xs text-muted-foreground">
+                              Available: {component.availableBalance}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`quantity-${index}`} className="text-xs">Quantity:</Label>
+                            <Input
+                              id={`quantity-${index}`}
+                              type="number"
+                              min="1"
+                              max={component.availableBalance}
+                              value={component.quantity}
+                              onChange={(e) => updateComponentQuantity(index, parseInt(e.target.value) || 1)}
+                              className="w-20 h-8 text-xs"
+                            />
+                          </div>
+                          {(() => {
+                            const componentToken = inventoryTokens.find(token => token.tokenId === component.tokenId);
+                            if (componentToken) {
+                              const carbonPerUnit = componentToken.batchInfo.carbonFootprint / componentToken.batchInfo.quantity;
+                              const componentTotalEmissions = (carbonPerUnit * component.quantity) / 1000;
+                              return (
+                                <div className="text-xs text-green-600 mt-1">
+                                  Emissions: {componentTotalEmissions.toFixed(3)} tons CO₂
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeComponent(index)}
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {inventoryTokens.length === 0 && (
+                  <p className="text-xs text-amber-600">
+                    No inventory tokens found. You need tokens in your inventory to use as components.
+                  </p>
+                )}
+              </div>
+            )}
+
             {selectedTemplate && (
               <div className="p-3 bg-muted rounded-lg">
                 <h4 className="font-medium mb-2">Batch Details</h4>
@@ -890,12 +1127,57 @@ export default function ProductTemplatesPage() {
                     <span>{selectedTemplate.specifications.carbonFootprintPerUnit} tons CO₂</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Total carbon footprint:</span>
-                    <span className="font-medium">
+                    <span>Base carbon footprint:</span>
+                    <span>
                       {batchData.quantity ?
                         (selectedTemplate.specifications.carbonFootprintPerUnit * parseInt(batchData.quantity)).toFixed(2) :
                         '0'
                       } tons CO₂
+                    </span>
+                  </div>
+
+                  {/* Component emissions breakdown */}
+                  {!selectedTemplate.isRawMaterial && components.length > 0 && (
+                    <>
+                      <div className="border-t pt-2 mt-2">
+                        <div className="text-xs font-medium text-muted-foreground mb-1">Component Emissions:</div>
+                        {components.map((component, index) => {
+                          const componentToken = inventoryTokens.find(token => token.tokenId === component.tokenId);
+                          if (!componentToken) return null;
+
+                          const carbonPerUnit = componentToken.batchInfo.carbonFootprint / componentToken.batchInfo.quantity;
+                          const componentTotalEmissions = (carbonPerUnit * component.quantity) / 1000; // Convert to tons
+
+                          return (
+                            <div key={index} className="flex justify-between text-xs">
+                              <span className="text-muted-foreground">
+                                Token #{component.tokenId} ({component.quantity} units):
+                              </span>
+                              <span>{componentTotalEmissions.toFixed(3)} tons CO₂</span>
+                            </div>
+                          );
+                        })}
+                        <div className="flex justify-between text-xs font-medium border-t pt-1 mt-1">
+                          <span>Total component emissions:</span>
+                          <span>
+                            {(components.reduce((total, component) => {
+                              const componentToken = inventoryTokens.find(token => token.tokenId === component.tokenId);
+                              if (componentToken) {
+                                const carbonPerUnit = componentToken.batchInfo.carbonFootprint / componentToken.batchInfo.quantity;
+                                return total + (carbonPerUnit * component.quantity);
+                              }
+                              return total;
+                            }, 0) / 1000).toFixed(3)} tons CO₂
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex justify-between border-t pt-2 mt-2">
+                    <span className="font-medium">Total carbon footprint:</span>
+                    <span className="font-bold text-lg">
+                      {calculateTotalEmissions().toFixed(3)} tons CO₂
                     </span>
                   </div>
                 </div>

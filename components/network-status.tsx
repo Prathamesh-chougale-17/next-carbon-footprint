@@ -31,7 +31,7 @@ export function NetworkStatus({ onNetworkSwitch }: NetworkStatusProps) {
                 return;
             }
 
-            const provider = window.ethereum;
+            const provider = (window as any).ethereum;
             const chainId = await provider.request({ method: 'eth_chainId' });
             const networkId = parseInt(chainId, 16);
 

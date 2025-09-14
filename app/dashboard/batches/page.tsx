@@ -34,7 +34,7 @@ import { toast } from "sonner";
 import { NetworkStatus } from "@/components/network-status";
 import { smartContractService } from "@/lib/smart-contract";
 import { format } from "date-fns";
-import { ProductBatch, ProductTemplate, Plant } from "@/lib/models";
+import { ProductBatch, ProductTemplate, Plant, BatchComponent } from "@/lib/models";
 
 // Loading skeleton components
 const PageHeaderSkeleton = () => (
@@ -545,13 +545,35 @@ export default function BatchesPage() {
                                     </div>
                                     <div>
                                         <Label className="text-muted-foreground">Carbon Footprint</Label>
-                                        <p className="font-medium">{selectedBatch.carbonFootprint.toFixed(2)} tons CO₂</p>
+                                        <p className="font-medium">{(selectedBatch.carbonFootprint / 1000).toFixed(3)} tons CO₂</p>
                                     </div>
                                     <div>
                                         <Label className="text-muted-foreground">Plant</Label>
                                         <p className="font-medium">{selectedBatch.plant?.plantName}</p>
                                     </div>
                                 </div>
+
+                                {/* Component Information */}
+                                {selectedBatch.components && selectedBatch.components.length > 0 && (
+                                    <div className="mt-4 pt-4 border-t">
+                                        <h5 className="font-medium mb-2 text-sm">Components Used</h5>
+                                        <div className="space-y-2">
+                                            {selectedBatch.components.map((component, index) => (
+                                                <div key={index} className="flex items-center justify-between p-2 bg-background rounded border text-xs">
+                                                    <div className="flex items-center gap-2">
+                                                        <Package className="h-3 w-3 text-muted-foreground" />
+                                                        <span className="font-medium">Token #{component.tokenId}</span>
+                                                        <span className="text-muted-foreground">({component.tokenName})</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 text-muted-foreground">
+                                                        <span>{component.quantity} units</span>
+                                                        <span>{(component.carbonFootprint / 1000).toFixed(3)} tons CO₂</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                                 <div className="flex items-start gap-2">

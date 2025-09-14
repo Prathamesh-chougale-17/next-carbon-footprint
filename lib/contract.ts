@@ -296,7 +296,7 @@ export const CONTRACT_CONFIG = {
 export const CONTRACT_HELPERS = {
   // Check if MetaMask is available
   isMetaMaskAvailable: () => {
-    return typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
+    return typeof window !== 'undefined' && typeof (window as any).ethereum !== 'undefined';
   },
 
   // Get the current network
@@ -305,7 +305,7 @@ export const CONTRACT_HELPERS = {
       throw new Error('MetaMask is not available');
     }
 
-    const provider = window.ethereum;
+    const provider = (window as any).ethereum;
     const chainId = await provider.request({ method: 'eth_chainId' });
     return parseInt(chainId, 16);
   },
@@ -317,7 +317,7 @@ export const CONTRACT_HELPERS = {
     }
 
     try {
-      await window.ethereum.request({
+      await (window as any).ethereum.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: `0x${CONTRACT_CONFIG.NETWORK.chainId.toString(16)}` }],
       });
@@ -325,7 +325,7 @@ export const CONTRACT_HELPERS = {
       // If the network doesn't exist, add it
       if (switchError.code === 4902) {
         try {
-          await window.ethereum.request({
+          await (window as any).ethereum.request({
             method: 'wallet_addEthereumChain',
             params: [
               {
@@ -357,7 +357,7 @@ export const CONTRACT_HELPERS = {
     }
 
     const { ethers } = await import('ethers');
-    const provider = new ethers.BrowserProvider(window.ethereum);
+    const provider = new ethers.BrowserProvider((window as any).ethereum);
     const signer = await provider.getSigner();
 
     return new ethers.Contract(

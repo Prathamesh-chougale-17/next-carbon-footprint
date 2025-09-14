@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import client from '@/lib/mongodb';
-import { ProductBatch, ProductTemplate } from '@/lib/models';
+import { ProductBatch, ProductTemplate, BatchComponent } from '@/lib/models';
 import { ObjectId } from 'mongodb';
 import { smartContractService, BatchMintParams } from '@/lib/smart-contract';
 
@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
       productionDate,
       carbonFootprint,
       manufacturerAddress,
-      plantId
+      plantId,
+      components
     } = body;
 
     // Validate required fields
@@ -90,6 +91,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate and process components if provided
+    let processedComponents: BatchComponent[] | undefined;
+    if (components && Array.isArray(components) && components.length > 0) {
+      processedComponents = components.map((comp: any) => ({
+        tokenId: comp.tokenId,
+        tokenName: comp.tokenName,
+        quantity: comp.quantity,
+        carbonFootprint: comp.carbonFootprint || 0
+      }));
+    }
+
     const batch: Omit<ProductBatch, '_id'> = {
       batchNumber,
       templateId,
@@ -98,6 +110,7 @@ export async function POST(request: NextRequest) {
       carbonFootprint: carbonFootprint || (template.specifications.carbonFootprintPerUnit * parseInt(quantity)),
       manufacturerAddress,
       plantId: new ObjectId(plantId),
+      components: processedComponents,
       createdAt: new Date(),
       updatedAt: new Date()
     };

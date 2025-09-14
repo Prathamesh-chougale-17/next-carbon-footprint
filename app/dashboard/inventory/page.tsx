@@ -970,7 +970,7 @@ export default function InventoryPage() {
                                                 .map((transfer) => {
                                                     const dbBatch = getDatabaseBatch(transfer.tokenId);
                                                     return (
-                                                        <TableRow key={transfer._id}>
+                                                        <TableRow key={transfer._id?.toString() || transfer.txHash}>
                                                             <TableCell>
                                                                 <Badge
                                                                     variant={

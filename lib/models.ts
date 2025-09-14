@@ -41,6 +41,13 @@ export interface ProductTemplate {
 }
 
 // Product Batch - Actual production run that mints ERC-1155 tokens
+export interface BatchComponent {
+  tokenId: number;
+  tokenName: string;
+  quantity: number;
+  carbonFootprint: number; // Total carbon footprint for this component quantity
+}
+
 export interface ProductBatch {
   _id?: ObjectId;
   batchNumber: string;
@@ -51,6 +58,8 @@ export interface ProductBatch {
   carbonFootprint: number; // Total carbon footprint for this batch
   manufacturerAddress: string;
   plantId: ObjectId; // Reference to Plant
+  // Components for complex batches (non-raw materials)
+  components?: BatchComponent[];
   // ERC-1155 Token details
   tokenId?: number;
   tokenContractAddress?: string;
