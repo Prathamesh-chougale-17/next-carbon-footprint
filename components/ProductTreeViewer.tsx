@@ -19,7 +19,6 @@ import {
   MapPin,
   Zap,
   ExternalLink,
-  Eye,
   Calendar,
   Weight,
   Hash,
@@ -135,7 +134,6 @@ const ProductTreeViewer: React.FC<ProductTreeViewerProps> = ({
   const [treeData, setTreeData] = useState<TreeNode | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
 
   // Transform API data to tree structure
   const transformToTree = useCallback((data: ProductTreeData): TreeNode => {
@@ -267,7 +265,11 @@ const ProductTreeViewer: React.FC<ProductTreeViewerProps> = ({
           <button
             type="button"
             className={`${colors.bg} ${colors.border} border rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer w-full text-left backdrop-blur-sm bg-white/80 hover:bg-white/90`}
-            onClick={() => setSelectedNode(treeNode)}
+            onClick={() => {
+              if (attributes.tokenId) {
+                window.open(`/tokens/${attributes.tokenId}`, '_blank');
+              }
+            }}
           >
             <div className="flex items-start gap-3">
               {/* Product Image */}
@@ -459,8 +461,8 @@ const ProductTreeViewer: React.FC<ProductTreeViewerProps> = ({
           </div>
 
           {/* Tree Visualization */}
-          <div className="border border-slate-200 rounded-xl p-6 bg-gradient-to-br from-slate-50 to-white min-h-[400px] shadow-sm">
-            <div style={{ width: "100%", height: "400px" }}>
+          <div className="border border-slate-200 rounded-xl p-6 bg-gradient-to-br from-slate-50 to-white min-h-[700px] shadow-sm">
+            <div style={{ width: "100%", height: "700px" }}>
               <Tree
                 data={treeData}
                 orientation="horizontal"
@@ -476,155 +478,6 @@ const ProductTreeViewer: React.FC<ProductTreeViewerProps> = ({
             </div>
           </div>
 
-          {/* Node Details Panel */}
-          {selectedNode && (
-            <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  {/* Product Image */}
-                  <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-slate-100 to-slate-50 border border-slate-200 shadow-sm">
-                    {selectedNode.attributes.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={selectedNode.attributes.imageUrl as string}
-                        alt={selectedNode.name}
-                        className="w-full h-full object-cover transition-transform hover:scale-105"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-50">
-                        <Package className="h-8 w-8 text-slate-400" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-xl text-slate-900 mb-1">{selectedNode.name}</h4>
-                    <Badge variant="outline" className="bg-slate-100 text-slate-800 border-slate-200">
-                      Token #{selectedNode.attributes.tokenId}
-                    </Badge>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedNode(null)}
-                  className="text-slate-500 hover:text-slate-700"
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6 text-sm">
-                <div className="space-y-1">
-                  <span className="font-medium text-slate-600 text-xs uppercase tracking-wide">Token ID</span>
-                  <p className="text-slate-900 font-semibold">#{selectedNode.attributes.tokenId}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-medium text-slate-600 text-xs uppercase tracking-wide">Batch</span>
-                  <p className="text-slate-900 font-semibold">#{selectedNode.attributes.batchNumber}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-medium text-slate-600 text-xs uppercase tracking-wide">Quantity</span>
-                  <p className="text-slate-900 font-semibold">{selectedNode.attributes.quantity?.toLocaleString()} units</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-medium text-slate-600 text-xs uppercase tracking-wide">Weight</span>
-                  <p className="text-slate-900 font-semibold">{selectedNode.attributes.weight} kg</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-medium text-slate-600 text-xs uppercase tracking-wide">Carbon Footprint</span>
-                  <p className="text-slate-900 font-semibold">
-                    {((selectedNode.attributes.carbonFootprint || 0) / 1000).toFixed(2)} tons CO₂
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-medium text-slate-600 text-xs uppercase tracking-wide">Carbon per Unit</span>
-                  <p className="text-slate-900 font-semibold">
-                    {selectedNode.attributes.carbonFootprintPerUnit?.toFixed(3)} tons CO₂/unit
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-medium text-slate-600 text-xs uppercase tracking-wide">Plant</span>
-                  <p className="text-slate-900 font-semibold">{selectedNode.attributes.plantName}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-medium text-slate-600 text-xs uppercase tracking-wide">Location</span>
-                  <p className="text-slate-900 font-semibold">{selectedNode.attributes.location}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-medium text-slate-600 text-xs uppercase tracking-wide">Production Date</span>
-                  <p className="text-slate-900 font-semibold">
-                    {selectedNode.attributes.productionDate &&
-                      format(new Date(selectedNode.attributes.productionDate), "MMM dd, yyyy")}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-medium text-slate-600 text-xs uppercase tracking-wide">Type</span>
-                  <p className="text-slate-900 font-semibold">
-                    {selectedNode.attributes.isRawMaterial ? "Raw Material" : "Manufactured Product"}
-                  </p>
-                </div>
-              </div>
-
-              {selectedNode.attributes.materials && (
-                <div className="mt-6 pt-6 border-t border-slate-200">
-                  <span className="font-medium text-slate-600 text-xs uppercase tracking-wide block mb-3">
-                    Materials
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedNode.attributes.materials.split(", ").map((material) => (
-                      <Badge
-                        key={material}
-                        variant="secondary"
-                        className="text-xs bg-slate-100 text-slate-700 border-slate-200"
-                      >
-                        {material}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedNode.attributes.description && (
-                <div className="mt-6 pt-6 border-t border-slate-200">
-                  <span className="font-medium text-slate-600 text-xs uppercase tracking-wide block mb-3">
-                    Description
-                  </span>
-                  <p className="text-sm text-slate-700 leading-relaxed">
-                    {selectedNode.attributes.description}
-                  </p>
-                </div>
-              )}
-
-              {selectedNode.attributes.txHash && (
-                <div className="mt-6 pt-6 border-t border-slate-200">
-                  <span className="font-medium text-slate-600 text-xs uppercase tracking-wide block mb-3">
-                    Blockchain Transaction
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <code className="text-xs bg-slate-100 text-slate-700 px-3 py-2 rounded-lg font-mono border border-slate-200">
-                      {selectedNode.attributes.txHash.slice(0, 10)}...
-                      {selectedNode.attributes.txHash.slice(-8)}
-                    </code>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 px-3 text-xs border-slate-200 hover:bg-slate-50"
-                      onClick={() =>
-                        window.open(
-                          `https://testnet.snowtrace.io/tx/${selectedNode.attributes.txHash}`,
-                          "_blank",
-                        )
-                      }
-                    >
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      View on Explorer
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>

@@ -9,6 +9,17 @@ interface TokenDetails {
   product: ProductTemplate;
   plant: Plant;
   components?: ComponentDetails[];
+  supplyChainLocations?: SupplyChainLocation[];
+}
+
+interface SupplyChainLocation {
+  lat: number;
+  lng: number;
+  name: string;
+  type: 'Manufacturing' | 'Raw Material' | 'Component' | 'Final Product';
+  transport?: 'Road' | 'Sea' | 'Rail' | 'Air';
+  carbonFootprint?: number;
+  quantity?: number;
 }
 
 interface ComponentDetails {
@@ -16,6 +27,68 @@ interface ComponentDetails {
   product: ProductTemplate;
   plant: Plant;
   components?: ComponentDetails[];
+}
+
+// Function to collect all plant locations from the supply chain
+async function collectSupplyChainLocations(
+  batch: ProductBatch,
+  product: ProductTemplate,
+  plant: Plant,
+  components: ComponentDetails[],
+  templatesCollection: any,
+  plantsCollection: any
+): Promise<SupplyChainLocation[]> {
+  const locations: SupplyChainLocation[] = [];
+
+  // Add the main product location
+  if (plant.location?.coordinates) {
+    locations.push({
+      lat: plant.location.coordinates.latitude,
+      lng: plant.location.coordinates.longitude,
+      name: `${plant.plantName} - ${product.templateName}`,
+      type: product.isRawMaterial ? 'Raw Material' : 'Final Product',
+      carbonFootprint: batch.carbonFootprint / 1000,
+      quantity: batch.quantity,
+    });
+  }
+
+  // Recursively collect component locations
+  for (const component of components) {
+    if (component.plant.location?.coordinates) {
+      const componentProduct = await templatesCollection.findOne({
+        _id: new ObjectId(component.batch.templateId)
+      });
+
+      if (componentProduct) {
+        const componentQuantity = batch.components?.find(c => c.tokenId === component.batch.tokenId)?.quantity || 0;
+        const componentCO2 = (component.batch.carbonFootprint / 1000) * componentQuantity / component.batch.quantity;
+
+        locations.push({
+          lat: component.plant.location.coordinates.latitude,
+          lng: component.plant.location.coordinates.longitude,
+          name: `${component.plant.plantName} - ${componentProduct.templateName}`,
+          type: componentProduct.isRawMaterial ? 'Raw Material' : 'Component',
+          carbonFootprint: componentCO2,
+          quantity: componentQuantity,
+        });
+
+        // Recursively add sub-component locations
+        if (component.components && component.components.length > 0) {
+          const subLocations = await collectSupplyChainLocations(
+            component.batch,
+            componentProduct,
+            component.plant,
+            component.components,
+            templatesCollection,
+            plantsCollection
+          );
+          locations.push(...subLocations);
+        }
+      }
+    }
+  }
+
+  return locations;
 }
 
 async function getTokenDetails(tokenId: number): Promise<TokenDetails | null> {
@@ -66,6 +139,16 @@ async function getTokenDetails(tokenId: number): Promise<TokenDetails | null> {
         }
       }
     }
+
+    // Collect supply chain locations for the map
+    result.supplyChainLocations = await collectSupplyChainLocations(
+      batch,
+      product,
+      plant,
+      result.components || [],
+      templatesCollection,
+      plantsCollection
+    );
 
     return result;
   } catch (error) {

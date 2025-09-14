@@ -39,6 +39,7 @@ import { NetworkStatus } from "@/components/network-status";
 import { smartContractService } from "@/lib/smart-contract";
 import { format } from "date-fns";
 import { Partner, TokenTransfer } from "@/lib/models";
+import Link from "next/link";
 
 // Loading skeleton components
 const PageHeaderSkeleton = () => (
@@ -505,23 +506,23 @@ export default function InventoryPage() {
                         </div>
                     </div>
 
-                    {/* Complete Token Details Link */}
+                    {/* Digital Product Passport Link */}
                     <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <div className="flex items-center justify-between">
                             <div>
-                                <Label className="text-sm font-medium text-blue-900">Complete Token Details</Label>
+                                <Label className="text-sm font-medium text-blue-900">Digital Product Passport</Label>
                                 <p className="text-xs text-blue-700 mt-1">
-                                    View exploded view with all components, sub-components, and raw materials
+                                    View complete product traceability and sustainability information
                                 </p>
                             </div>
                             <Button
                                 size="sm"
                                 variant="outline"
                                 className="border-blue-300 text-blue-700 hover:bg-blue-100"
-                                onClick={() => window.open(`/api/tokens/${token.tokenId}`, '_blank')}
+                                onClick={() => window.open(`/tokens/${token.tokenId}`, '_blank')}
                             >
                                 <ExternalLink className="h-3 w-3 mr-1" />
-                                View Details
+                                View DPP
                             </Button>
                         </div>
                     </div>
