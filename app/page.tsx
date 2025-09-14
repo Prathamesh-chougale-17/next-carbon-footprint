@@ -21,7 +21,20 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen">
+    <div className="h-screen w-full bg-white relative">
+              {/* Emerald Glow Background */}
+              <div
+                className="fixed inset-0 z-0"
+                style={{
+                  backgroundImage: `
+                    radial-gradient(125% 125% at 50% 10%, #ffffff 40%, #10b981 100%)
+                  `,
+                  backgroundSize: "100% 100%",
+                }}
+                />
+                {/* Content */}
+              <div className="relative z-10">
+    
       {/* Navigation */}
       <nav className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -393,6 +406,7 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+      </div>
     </div>
   );
 }

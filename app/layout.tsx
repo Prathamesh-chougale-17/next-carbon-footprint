@@ -37,22 +37,8 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <div className="h-screen w-full bg-white relative">
-              {/* Emerald Glow Background */}
-              <div
-                className="fixed inset-0 z-0"
-                style={{
-                  backgroundImage: `
-                    radial-gradient(125% 125% at 50% 10%, #ffffff 40%, #10b981 100%)
-                  `,
-                  backgroundSize: "100% 100%",
-                }}
-              />
-              {/* Content */}
-              <div className="relative z-10">
+            
                 {children}
-              </div>
-            </div>
             <Toaster />
           </ThemeProvider>
         </AvaxWalletProvider>
