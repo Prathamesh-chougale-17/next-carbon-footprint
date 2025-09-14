@@ -111,6 +111,7 @@ export default function ProductTemplatesPage() {
     plantId: ""
   });
   const [components, setComponents] = useState<Component[]>([]);
+  const [tokenProductTemplates, setTokenProductTemplates] = useState<{ [key: number]: any }>({});
   const [formData, setFormData] = useState({
     templateName: "",
     description: "",
@@ -181,7 +182,27 @@ export default function ProductTemplatesPage() {
       await smartContractService.initialize();
       const balances = await smartContractService.getUserTokenBalances(address);
       console.log('Inventory tokens fetched:', balances);
+      console.log('Token batch info details:', balances.map(t => ({
+        tokenId: t.tokenId,
+        templateId: t.batchInfo.templateId,
+        templateIdType: typeof t.batchInfo.templateId
+      })));
       setInventoryTokens(balances);
+
+      // Fetch product templates for each token
+      const templatePromises = balances.map(async (token) => {
+        const template = await fetchProductTemplateById(token.batchInfo.templateId);
+        return { tokenId: token.tokenId, template };
+      });
+
+      const templateResults = await Promise.all(templatePromises);
+      const templateMap = templateResults.reduce((acc, { tokenId, template }) => {
+        acc[tokenId] = template;
+        return acc;
+      }, {} as { [key: number]: any });
+
+      console.log('Fetched product templates for tokens:', templateMap);
+      setTokenProductTemplates(templateMap);
     } catch (error) {
       console.error('Error fetching inventory tokens:', error);
       setInventoryTokens([]);
@@ -298,9 +319,18 @@ export default function ProductTemplatesPage() {
     return baseEmissions + (componentEmissions / 1000); // Convert from kg to tons
   };
 
-  // Get product template by templateId
-  const getProductTemplateByTemplateId = (templateId: string) => {
-    return templates.find(template => template._id?.toString() === templateId);
+  // Fetch product template by ID from database (like in inventory page)
+  const fetchProductTemplateById = async (templateId: string) => {
+    try {
+      const response = await fetch(`/api/product-templates/${templateId}`);
+      if (response.ok) {
+        const template = await response.json();
+        return template;
+      }
+    } catch (error) {
+      console.error('Error fetching product template:', error);
+    }
+    return null;
   };
 
   const openBatchModal = async (template: ProductTemplate) => {
@@ -1126,7 +1156,7 @@ export default function ProductTemplatesPage() {
                       onValueChange={(value) => {
                         const token = inventoryTokens.find(t => t.tokenId.toString() === value);
                         if (token) {
-                          const productTemplate = getProductTemplateByTemplateId(token.batchInfo.templateId);
+                          const productTemplate = tokenProductTemplates[token.tokenId];
                           const productName = productTemplate ? productTemplate.templateName : `Token #${token.tokenId}`;
                           addComponent(token.tokenId, productName, token.balance);
                         }
@@ -1139,7 +1169,8 @@ export default function ProductTemplatesPage() {
                         {inventoryTokens
                           .filter(token => !components.some(comp => comp.tokenId === token.tokenId))
                           .map((token) => {
-                            const productTemplate = getProductTemplateByTemplateId(token.batchInfo.templateId);
+                            const productTemplate = tokenProductTemplates[token.tokenId];
+                            console.log('Debug - token:', token.tokenId, 'templateId:', token.batchInfo.templateId, 'found template:', productTemplate);
                             const productName = productTemplate ? productTemplate.templateName : `Token #${token.tokenId}`;
 
                             return (

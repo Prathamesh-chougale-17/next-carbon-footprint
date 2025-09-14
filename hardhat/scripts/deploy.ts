@@ -33,7 +33,7 @@ async function main() {
   console.log("👤 Owner:", owner);
   console.log("🆔 Current Token ID Counter:", currentTokenId.toString());
   console.log("⏸️  Is Paused:", isPaused);
-  
+
   // Only try to get URI if tokens exist
   try {
     if (currentTokenId.gt(0)) {
