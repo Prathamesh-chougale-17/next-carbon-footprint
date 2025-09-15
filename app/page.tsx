@@ -21,17 +21,28 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function LandingPage() {
   return (
-    <div className="h-screen w-full bg-white relative">
+    <div className="min-h-screen w-full bg-background relative">
               {/* Emerald Glow Background */}
+              {/* Light mode gradient */}
               <div
-                className="fixed inset-0 z-0"
+                className="fixed inset-0 z-0 dark:hidden"
                 style={{
                   backgroundImage: `
                     radial-gradient(125% 125% at 50% 10%, #ffffff 40%, #10b981 100%)
                   `,
                   backgroundSize: "100% 100%",
                 }}
-                />
+              />
+              {/* Dark mode gradient */}
+              <div
+                className="fixed inset-0 z-0 hidden dark:block"
+                style={{
+                  backgroundImage: `
+                    radial-gradient(125% 125% at 50% 10%, #0b0f12 40%, #064e3b 100%)
+                  `,
+                  backgroundSize: "100% 100%",
+                }}
+              />
                 {/* Content */}
               <div className="relative z-10">
     
@@ -105,7 +116,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mb-4">
                   <Coins className="h-6 w-6 text-green-600 dark:text-green-400" />
@@ -117,7 +128,7 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-4">
                   <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -129,7 +140,7 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mb-4">
                   <MapPin className="h-6 w-6 text-purple-600 dark:text-purple-400" />
@@ -141,7 +152,7 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center mb-4">
                   <TreePine className="h-6 w-6 text-orange-600 dark:text-orange-400" />
@@ -153,7 +164,7 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <div className="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center mb-4">
                   <Lock className="h-6 w-6 text-red-600 dark:text-red-400" />
@@ -165,7 +176,7 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center mb-4">
                   <Network className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
@@ -251,7 +262,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mb-4">
                   <Factory className="h-6 w-6 text-green-600 dark:text-green-400" />
@@ -264,7 +275,7 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-4">
                   <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -277,7 +288,7 @@ export default function LandingPage() {
               </CardHeader>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-lg hover:shadow-xl transition-shadow">
               <CardHeader>
                 <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mb-4">
                   <Network className="h-6 w-6 text-purple-600 dark:text-purple-400" />
